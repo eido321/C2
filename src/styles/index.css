@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@1,400;1,700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-serif: "Playfair Display", serif;
+  
+  --color-bg: #f0f0f0;
+  --color-surface: #ffffff;
+  --color-ink: #1a1a1a;
+  --color-accent: #2563eb; /* Professional Blue */
+  --color-border: #e2e8f0;
+  --color-muted: #64748b;
+
+  --color-dark-bg: #0f172a;
+  --color-dark-surface: #1e293b;
+  --color-dark-ink: #f8fafc;
+  --color-dark-border: #334155;
+  --color-dark-muted: #94a3b8;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-ink font-sans antialiased selection:bg-accent selection:text-white transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-dark-bg text-dark-ink;
+  }
+}
+
+@layer components {
+  .sheet-container {
+    @apply max-w-6xl mx-auto p-6 md:p-10 bg-surface shadow-sm border border-border my-8 rounded-xl transition-all duration-300;
+  }
+  
+  .dark .sheet-container {
+    @apply bg-dark-surface border-dark-border shadow-2xl shadow-black/50;
+  }
+  
+  .stat-card {
+    @apply bg-surface border border-border rounded-xl p-4 transition-all hover:border-accent/30 hover:shadow-md;
+  }
+
+  .dark .stat-card {
+    @apply bg-slate-900/50 border-dark-border hover:border-accent/50;
+  }
+  
+  .input-minimal {
+    @apply bg-transparent border-b border-border focus:border-accent outline-none transition-all py-1 font-medium;
+  }
+
+  .dark .input-minimal {
+    @apply border-dark-border focus:border-accent;
+  }
+  
+  .section-header {
+    @apply flex items-center gap-3 mb-6 pb-2 border-b border-border;
+  }
+
+  .dark .section-header {
+    @apply border-dark-border;
+  }
+
+  .tab-btn {
+    @apply flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold transition-all relative rounded-lg;
+  }
+
+  .hardware-box {
+    @apply bg-slate-50 border border-slate-200 rounded-lg p-4 font-mono;
+  }
+
+  .dark .hardware-box {
+    @apply bg-slate-900 border-dark-border text-slate-300;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DARK MODE
+   Activated by adding `class="dark"` to <html>.
+   Section 1 – remap @theme CSS variables so every semantic utility
+               (bg-bg, bg-surface, text-ink, border-border …) auto-updates.
+   Section 2 – override the many hardcoded bg-white / bg-slate-* / text-slate-*
+               / border-slate-* Tailwind utilities used in component files.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── 1. Remap semantic CSS variables ──────────────────────────────────────── */
+.dark {
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-ink: #f8fafc;
+  --color-border: #334155;
+  --color-muted: #94a3b8;
+}
+
+/* ── 2. Hardcoded utility overrides ───────────────────────────────────────── */
+
+/* Backgrounds */
+.dark .bg-white         { background-color: #1e293b; }
+.dark .bg-slate-50      { background-color: #162032; }
+.dark .bg-slate-100     { background-color: #1e293b; }
+.dark .bg-slate-200     { background-color: #334155; }
+.dark .bg-slate-50\/50  { background-color: rgba(22, 32, 50, 0.5); }
+.dark .bg-slate-50\/80  { background-color: rgba(22, 32, 50, 0.85); }
+.dark .bg-slate-50\/30  { background-color: rgba(22, 32, 50, 0.3); }
+.dark .bg-white\/50     { background-color: rgba(30, 41, 59, 0.5); }
+
+/* Borders */
+.dark .border-slate-100 { border-color: #1e293b; }
+.dark .border-slate-200 { border-color: #334155; }
+.dark .divide-slate-200 > * + * { border-color: #334155; }
+
+/* Text — dark-on-light classes become light-on-dark */
+.dark .text-slate-900   { color: #f8fafc; }
+.dark .text-slate-800   { color: #e2e8f0; }
+.dark .text-slate-700   { color: #cbd5e1; }
+.dark .text-slate-600   { color: #94a3b8; }
+/* slate-500 is mid-tone — leave as-is */
+.dark .text-slate-400   { color: #94a3b8; }
+/* slate-300 is used as very-subtle placeholder text; darken so it reads as subtle on dark bg */
+.dark .text-slate-300   { color: #475569; }
+
+/* Hover backgrounds */
+.dark .hover\:bg-slate-50:hover         { background-color: #1e293b; }
+.dark .hover\:bg-slate-100:hover        { background-color: #334155; }
+.dark .hover\:bg-white:hover            { background-color: #334155; }
+.dark .hover\:bg-white\/50:hover        { background-color: rgba(51, 65, 85, 0.5); }
+
+/* Hover text */
+.dark .hover\:text-slate-900:hover      { color: #f8fafc; }
+.dark .hover\:text-slate-700:hover      { color: #cbd5e1; }
+
+/* Placeholders */
+.dark .placeholder\:text-slate-300::placeholder { color: #475569; }
+.dark .placeholder\:text-slate-400::placeholder { color: #334155; }
+
+/* Focus ring borders — keep accent colour, nothing to change */
+
+/* Dashed / subtle borders used in "empty" banners */
+.dark .border-dashed.border-slate-200   { border-color: #334155; }
+
+/* Shadows — boost so they're visible on dark backgrounds */
+.dark .shadow-sm  { box-shadow: 0 1px 3px 0 rgba(0,0,0,.5); }
+.dark .shadow-md  { box-shadow: 0 4px 6px -1px rgba(0,0,0,.6); }
+.dark .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0,0,0,.8); }
+
+/* ── Native form elements ─────────────────────────────────────────────────── */
+/* <select> elements with hardcoded bg-slate-50 still need colour on the
+   native picker popup (overriding Tailwind's utility isn't enough for that) */
+.dark select {
+  color: #f8fafc;
+}
+.dark select option {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-slate-700 hover:bg-slate-600;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .sheet-container {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+}
+

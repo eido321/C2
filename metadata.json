@@ -1,0 +1,5 @@
+{
+  "name": "MythicSheet",
+  "description": "A dynamic D&D 5e character sheet with automatic calculations, profile management, and PDF export.",
+  "requestFramePermissions": []
+}

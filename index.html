@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C2</title>
+    <link rel="icon" href="/favicon_io/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png" />
+    <link rel="manifest" href="/favicon_io/site.webmanifest" />
+    <!-- Apply saved theme preferences before first paint to prevent flash -->
+    <script>
+      if (localStorage.getItem('mythic_dark_mode') === 'true') {
+        document.documentElement.classList.add('dark');
+      }
+      var accent = localStorage.getItem('mythic_accent_color');
+      if (accent) {
+        document.documentElement.style.setProperty('--color-accent', accent);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/app/main.tsx"></script>
+  </body>
+</html>
+

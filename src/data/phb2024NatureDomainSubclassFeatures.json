@@ -1,0 +1,51 @@
+[
+  {
+    "className": "Cleric",
+    "subclass": "Nature Domain",
+    "name": "Nature Domain Spells",
+    "acquiredAtLevel": 3,
+    "description": "Your connection to this divine domain ensures you always have certain spells ready. When you reach a Cleric level specified in the Nature Domain Spells table, you thereafter always have the listed spells prepared.\nNature Domain Spells\nCleric Level Prepared Spells\n3 Animal Friendship, Barkskin, Speak with Animals, Spike Growth\n5 Plant Growth, Wind Wall\n7 Dominate Beast, Grasping Vine\n9 Insect Plague, Tree Stride"
+  },
+  {
+    "className": "Cleric",
+    "subclass": "Nature Domain",
+    "name": "Acolyte of Nature",
+    "acquiredAtLevel": 3,
+    "description": "You learn one cantrip of your choice from the Druid spell list. It counts as a Cleric cantrip for you and doesn’t count against the number of Cleric cantrips you know.\nYou learn two spells of your choice from the Druid spell list. Each must be of a level for which you have Cleric spell slots. They count as Cleric spells for you and don’t count against the number of spells you can prepare.\nYou also gain proficiency in one of the following skills of your choice: Animal Handling, Nature, or Survival."
+  },
+  {
+    "className": "Cleric",
+    "subclass": "Nature Domain",
+    "name": "Bonus Proficiency",
+    "acquiredAtLevel": 3,
+    "description": "You gain training with Heavy armor."
+  },
+  {
+    "className": "Cleric",
+    "subclass": "Nature Domain",
+    "name": "Channel Divinity: Charm Animals and Plants",
+    "acquiredAtLevel": 3,
+    "description": "As a Magic action, you present your Holy Symbol and expend one use of your Channel Divinity to invoke the power of nature. Each Beast or Plant creature that can see you within 30 feet of you must succeed on a Wisdom saving throw or have the Charmed condition for 1 minute. While Charmed in this way, a creature is Friendly toward you and your allies. The effect ends early on a creature if you or your allies harm it.\nPlant creatures that aren’t creatures (such as ordinary trees) don’t make saving throws; your DM decides how unnatural plants respond."
+  },
+  {
+    "className": "Cleric",
+    "subclass": "Nature Domain",
+    "name": "Dampen Elements",
+    "acquiredAtLevel": 6,
+    "description": "When you or a creature you can see within 30 feet of you takes Acid, Cold, Fire, Lightning, or Thunder damage, you can take a Reaction to grant Resistance to that instance of damage to that creature."
+  },
+  {
+    "className": "Cleric",
+    "subclass": "Nature Domain",
+    "name": "Divine Strike",
+    "acquiredAtLevel": 6,
+    "description": "Once on each of your turns when you hit a creature with a weapon or an Unarmed Strike, you can deal extra damage to the target equal to 1d8 Cold, Fire, or Lightning damage (your choice)."
+  },
+  {
+    "className": "Cleric",
+    "subclass": "Nature Domain",
+    "name": "Master of Nature",
+    "acquiredAtLevel": 17,
+    "description": "Creatures Charmed by your Channel Divinity: Charm Animals and Plants obey your commands while they’re Charmed in this way. As a Bonus Action, you mentally command any number of those creatures within 60 feet of yourself if they can hear you (you don’t need a shared language). You decide the creatures’ actions and movement on their next turns, or you can issue a general command such as to guard an area. Once you issue a command, you can’t issue another until the end of your next turn."
+  }
+]
