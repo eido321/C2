@@ -13,6 +13,7 @@ import {
   getTotalCp,
   trySpendCp,
 } from '@/lib/characterCurrency';
+import { formatToolAbilityTag } from '@/lib/toolAbility';
 
 interface ShopModalProps {
   character: Character;
@@ -143,6 +144,14 @@ export const ShopModal: React.FC<ShopModalProps> = ({ character, onClose, onPurc
                     <div className="text-[10px] font-black uppercase tracking-widest text-muted mt-0.5">
                       {SHOP_CATEGORY_LABELS[it.category]} · {formatPriceCp(it.costCp)} each
                     </div>
+                    {it.category === 'tool' && (
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted mt-0.5">
+                        Uses:{' '}
+                        <span className="text-slate-700">
+                          {formatToolAbilityTag(it.name) ?? '—'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <label className="flex items-center gap-1.5 text-[10px] font-black uppercase text-muted">

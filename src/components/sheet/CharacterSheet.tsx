@@ -54,6 +54,7 @@ import { getSpellBudgetSummary } from '@/lib/spellBudget';
 import { aggregateSpecialInventoryModifiers } from '@/lib/specialInventoryModifiers';
 import { buildClassFeaturesThroughLevel } from '@/lib/buildClassFeatures';
 import { getDefaultSpellcastingAbility } from '@/lib/classSpellcasting';
+import { formatToolAbilityTag } from '@/lib/toolAbility';
 import {
   DND_CLASSES,
   ABILITIES,
@@ -346,6 +347,11 @@ function ToolProficiencyChipSelect({
     );
   }, [options, selected, query]);
 
+  const labelFor = (name: string) => {
+    const tag = formatToolAbilityTag(name);
+    return tag ? `${name} (${tag})` : name;
+  };
+
   return (
     <div className="space-y-3 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
       <div>
@@ -364,7 +370,7 @@ function ToolProficiencyChipSelect({
                   onClick={() => onChange(selected.filter((x) => x !== t))}
                   className="px-2.5 py-1 rounded-full text-[10px] font-black border border-accent bg-accent text-white hover:bg-accent/90 transition-colors"
                 >
-                  {t} ×
+                  {labelFor(t)} ×
                 </button>
               ))
           )}
@@ -397,7 +403,7 @@ function ToolProficiencyChipSelect({
                 }}
                 className="px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-bold border border-slate-200 bg-white text-slate-600 hover:border-accent hover:text-accent transition-colors text-left max-w-full"
               >
-                + {name}
+                + {labelFor(name)}
               </button>
             ))
           )}
