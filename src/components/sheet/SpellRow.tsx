@@ -154,6 +154,13 @@ export const SpellRow: React.FC<SpellRowProps> = ({ spell, onUpdate, onDelete, c
                     [comp.toLowerCase()]: !spell.components[comp.toLowerCase() as keyof typeof spell.components]
                   }
                 })}
+                title={
+                  comp === 'V'
+                    ? 'Verbal component'
+                    : comp === 'S'
+                      ? 'Somatic component'
+                      : 'Material component'
+                }
                 className={cn(
                   "rounded border font-black flex items-center justify-center transition-all",
                   compact ? "w-4 h-4 text-[7px]" : "w-6 h-6 text-[8px]",
