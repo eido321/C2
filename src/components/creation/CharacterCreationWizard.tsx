@@ -247,6 +247,40 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
     return base;
   }, [s]);
 
+  // ── Armor training gates (avoid suggesting untrained gear) ──────────────────
+  const armorTraining = useMemo((): string[] => {
+    // Values match `PHB_2024_ARMOR_PROFICIENCY_CATEGORIES` from the sheet side.
+    // This is used only to gate the wizard's equipment suggestions/picks.
+    const baseByClass: Record<string, string[]> = {
+      Artificer: ['Light armor', 'Medium armor', 'Shields'],
+      Barbarian: ['Light armor', 'Medium armor', 'Shields'],
+      Bard: ['Light armor'],
+      Cleric: ['Light armor', 'Medium armor', 'Shields'],
+      Druid: ['Light armor', 'Shields'],
+      Fighter: ['Light armor', 'Medium armor', 'Heavy armor', 'Shields'],
+      Monk: [],
+      Paladin: ['Light armor', 'Medium armor', 'Heavy armor', 'Shields'],
+      Ranger: ['Light armor', 'Medium armor', 'Shields'],
+      Rogue: ['Light armor'],
+      Sorcerer: [],
+      Warlock: ['Light armor'],
+      Wizard: [],
+    };
+
+    const out = new Set<string>(baseByClass[s.className] ?? []);
+
+    // 2024 PHB branches that change armor training.
+    if (s.className === 'Cleric' && s.clericDivineOrder === 'protector') {
+      out.add('Heavy armor');
+    }
+    if (s.className === 'Druid' && s.druidPrimalOrder === 'warden') {
+      out.add('Medium armor');
+    }
+
+    return [...out];
+  }, [s.className, s.clericDivineOrder, s.druidPrimalOrder]);
+  const shieldTrained = armorTraining.includes('Shields');
+
   const equipmentStepOk = useMemo(() => {
     if (!s.background || !s.className) return false;
     const wallet = computeStartingWalletGp({
@@ -261,12 +295,20 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
       classEquipmentChoice: s.classEquipmentChoice,
       className: s.className,
     });
+    const bodyPiece = body ? ARMOR_LIST.find((a) => a.name === body) : null;
+    const bodyTrained = !bodyPiece
+      ? true
+      : armorTraining.includes(
+          bodyPiece.category === 'Shield' ? 'Shields' : `${bodyPiece.category} armor`,
+        );
+    if (!bodyTrained) return false;
+    if (s.startingShield && !shieldTrained) return false;
     return canAffordStartingGear(
       wallet,
       s.className,
       s.classEquipmentChoice,
       body,
-      s.startingShield,
+      s.startingShield && shieldTrained,
       ARMOR_LIST,
       finalAbilities.str,
     );
@@ -279,6 +321,8 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
     s.startingUnarmored,
     s.startingShield,
     finalAbilities.str,
+    armorTraining,
+    shieldTrained,
   ]);
 
   // ── Step validation ─────────────────────────────────────────────────────────
@@ -685,7 +729,8 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
       equippedShield: s.startingShield,
       currency: { cp: 0, sp: 0, ep: 0, pp: 0, gp: gpRemaining },
       inventory: inventoryLines,
-      initiative: dexMod,
+      initiative: 0,
+      initiativeProficient: false,
       speed: `${s.race?.speed ?? 30}ft`,
       languages: s.race?.languages?.length ? s.race.languages.join(', ') : '',
       size: resolvedSize,
@@ -2067,11 +2112,24 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
     classEquipmentChoice: s.classEquipmentChoice,
     className: s.className,
   });
+  const bodyResolvedEquipmentStepPiece = bodyResolvedEquipmentStep
+    ? ARMOR_LIST.find((a) => a.name === bodyResolvedEquipmentStep)
+    : null;
+  const bodyResolvedEquipmentStepTrained = !bodyResolvedEquipmentStepPiece
+    ? true
+    : armorTraining.includes(
+        bodyResolvedEquipmentStepPiece.category === 'Shield'
+          ? 'Shields'
+          : `${bodyResolvedEquipmentStepPiece.category} armor`,
+      );
+  const bodyResolvedEquipmentStepSafe = bodyResolvedEquipmentStepTrained
+    ? bodyResolvedEquipmentStep
+    : null;
   const spendPreview = armorAndShieldCostGp({
     className: s.className,
     classEquipmentChoice: s.classEquipmentChoice,
-    bodyArmorName: bodyResolvedEquipmentStep,
-    buyShield: s.startingShield,
+    bodyArmorName: bodyResolvedEquipmentStepSafe,
+    buyShield: s.startingShield && shieldTrained,
     armors: ARMOR_LIST,
   });
   const strForArmor = finalAbilities.str;
@@ -2087,7 +2145,7 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
   };
 
   const armorRowSelected = (pieceName: string) =>
-    !s.startingUnarmored && bodyResolvedEquipmentStep === pieceName;
+    !s.startingUnarmored && bodyResolvedEquipmentStepSafe === pieceName;
 
   const canAffordBody = (pieceName: string) =>
     canAffordStartingGear(
@@ -2095,21 +2153,28 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
       s.className,
       s.classEquipmentChoice,
       pieceName,
-      s.startingShield,
+      s.startingShield && shieldTrained,
       ARMOR_LIST,
       strForArmor,
-    );
+    ) &&
+    (() => {
+      const piece = ARMOR_LIST.find((a) => a.name === pieceName);
+      if (!piece) return false;
+      return armorTraining.includes(
+        piece.category === 'Shield' ? 'Shields' : `${piece.category} armor`,
+      );
+    })();
 
   const canAffordShieldOn = () =>
     canAffordStartingGear(
       walletForEquipment,
       s.className,
       s.classEquipmentChoice,
-      bodyResolvedEquipmentStep,
+      bodyResolvedEquipmentStepSafe,
       true,
       ARMOR_LIST,
       strForArmor,
-    );
+    ) && shieldTrained;
 
   const StepEquipment = (
     <div>
@@ -2163,7 +2228,8 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
           const payGp = free ? 0 : listGp;
           const affordable = canAffordBody(piece.name);
           const strOk = !piece.strRequirement || strForArmor >= piece.strRequirement;
-          const disabled = !affordable || !strOk;
+          const trained = armorTraining.includes(`${piece.category} armor`);
+          const disabled = !affordable || !strOk || !trained;
           return (
             <button
               key={piece.name}
@@ -2171,6 +2237,9 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
               disabled={disabled}
               onClick={() => pickBodyArmor(piece.name)}
               title={
+                !trained
+                  ? `No ${piece.category.toLowerCase()} armor training for your class`
+                  : 
                 !strOk
                   ? `Needs Strength ${piece.strRequirement} (you have ${strForArmor})`
                   : !affordable
@@ -2205,21 +2274,26 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
       <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Shield (+2 AC)</div>
       <button
         type="button"
-        disabled={!s.startingShield && !canAffordShieldOn()}
-        onClick={() => upd({ startingShield: !s.startingShield })}
+        disabled={!shieldTrained || (!s.startingShield && !canAffordShieldOn())}
+        onClick={() => {
+          if (!shieldTrained) return;
+          upd({ startingShield: !s.startingShield });
+        }}
         className={cn(
           'w-full text-left px-3 py-2 rounded-xl border-2 text-[11px] font-bold transition-all',
           s.startingShield ? 'border-accent bg-accent/5' : 'border-slate-200 bg-white hover:border-slate-300',
-          !s.startingShield && !canAffordShieldOn() && 'opacity-40 cursor-not-allowed',
+          (!shieldTrained || (!s.startingShield && !canAffordShieldOn())) && 'opacity-40 cursor-not-allowed',
         )}
       >
         <div className="flex justify-between gap-2">
           <span>Shield</span>
           <span className="tabular-nums text-slate-600">10 GP</span>
         </div>
-        {!s.startingShield && !canAffordShieldOn() && (
+        {!shieldTrained ? (
+          <div className="text-[10px] font-normal text-amber-700 mt-1">No shield training for your class.</div>
+        ) : !s.startingShield && !canAffordShieldOn() ? (
           <div className="text-[10px] font-normal text-amber-700 mt-1">Not enough GP with current armor.</div>
-        )}
+        ) : null}
       </button>
     </div>
   );
