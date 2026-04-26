@@ -68,6 +68,16 @@ const WEAPON_NAME_TO_CATEGORY = new Map<string, string>();
 for (const n of SIMPLE_WEAPON_NAMES) WEAPON_NAME_TO_CATEGORY.set(n, 'Simple weapons');
 for (const n of MARTIAL_WEAPON_NAMES) WEAPON_NAME_TO_CATEGORY.set(n, 'Martial weapons');
 
+/** All individual PHB 2024 weapon names (for specific proficiency picks). */
+export const PHB_2024_WEAPON_PROFICIENCY_ALL: readonly string[] = [
+  ...SIMPLE_WEAPON_NAMES,
+  ...MARTIAL_WEAPON_NAMES,
+].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+export function isPhb2024WeaponName(name: string): boolean {
+  return WEAPON_NAME_TO_CATEGORY.has(name);
+}
+
 const gamingSetLabels = GAMING_SET_PHB_2024.map((g) => `Gaming set (${g})`);
 const instrumentLabels = MUSICAL_INSTRUMENT_PHB_2024.map((m) => `Musical instrument (${m})`);
 

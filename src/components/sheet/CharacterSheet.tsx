@@ -28,10 +28,12 @@ import {
 } from '@/data/armor';
 import {
   asProficiencyArray,
+  isPhb2024WeaponName,
   normalizeArmorProficiencies,
   normalizeWeaponProficiencies,
   PHB_2024_ARMOR_PROFICIENCY_CATEGORIES,
   PHB_2024_TOOL_PROFICIENCY_ALL,
+  PHB_2024_WEAPON_PROFICIENCY_ALL,
   PHB_2024_WEAPON_PROFICIENCY_CATEGORIES,
 } from '@/data/phb2024EquipmentProficiencies';
 import { CustomSelect } from './CustomSelect';
@@ -334,18 +336,23 @@ function ToolProficiencyChipSelect({
   options,
   selected,
   onChange,
+  showAdd = true,
+  showSelected = true,
 }: {
   options: readonly string[];
   selected: string[];
   onChange: (next: string[]) => void;
+  showAdd?: boolean;
+  showSelected?: boolean;
 }) {
   const [query, setQuery] = useState('');
   const addable = useMemo(() => {
+    if (!showAdd) return [];
     const q = query.trim().toLowerCase();
     return options.filter(
       (t) => !selected.includes(t) && (!q || t.toLowerCase().includes(q)),
     );
-  }, [options, selected, query]);
+  }, [options, selected, query, showAdd]);
 
   const labelFor = (name: string) => {
     const tag = formatToolAbilityTag(name);
@@ -354,61 +361,338 @@ function ToolProficiencyChipSelect({
 
   return (
     <div className="space-y-3 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
-      <div>
-        <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Selected</div>
-        <div className="flex flex-wrap gap-1.5 min-h-[2rem] items-start">
-          {selected.length === 0 ? (
-            <span className="text-[10px] text-muted italic py-1">None — search and tap a tool to add.</span>
-          ) : (
-            [...selected]
-              .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-              .map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  title="Remove"
-                  onClick={() => onChange(selected.filter((x) => x !== t))}
-                  className="px-2.5 py-1 rounded-full text-[10px] font-black border border-accent bg-accent text-white hover:bg-accent/90 transition-colors"
-                >
-                  {labelFor(t)} ×
-                </button>
-              ))
-          )}
+      {showSelected && (
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Selected</div>
+          <div className="flex flex-wrap gap-1.5 min-h-[2rem] items-start">
+            {selected.length === 0 ? (
+              <span className="text-[10px] text-muted italic py-1">None — search and tap a tool to add.</span>
+            ) : (
+              [...selected]
+                .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                .map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    title="Remove"
+                    onClick={() => onChange(selected.filter((x) => x !== t))}
+                    className="px-2.5 py-1 rounded-full text-[10px] font-black border border-accent bg-accent text-white hover:bg-accent/90 transition-colors"
+                  >
+                    {labelFor(t)} ×
+                  </button>
+                ))
+            )}
+          </div>
         </div>
-      </div>
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search tools to add…"
-          className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-slate-200 bg-white outline-none focus:border-accent"
-        />
-      </div>
-      <div>
-        <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Add</div>
-        <div className="max-h-52 overflow-y-auto flex flex-wrap gap-1.5">
-          {addable.length === 0 ? (
-            <span className="text-[10px] text-muted italic">No matches.</span>
-          ) : (
-            addable.map((name) => (
-              <button
-                key={name}
-                type="button"
-                title={name}
-                onClick={() => {
-                  onChange([...selected, name]);
-                  setQuery('');
-                }}
-                className="px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-bold border border-slate-200 bg-white text-slate-600 hover:border-accent hover:text-accent transition-colors text-left max-w-full"
-              >
-                + {labelFor(name)}
-              </button>
-            ))
-          )}
+      )}
+      {showAdd && (
+        <>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search tools to add…"
+              className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-slate-200 bg-white outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Add</div>
+            <div className="max-h-52 overflow-y-auto flex flex-wrap gap-1.5">
+              {addable.length === 0 ? (
+                <span className="text-[10px] text-muted italic">No matches.</span>
+              ) : (
+                addable.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    title={name}
+                    onClick={() => {
+                      onChange([...selected, name]);
+                      setQuery('');
+                    }}
+                    className="px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-bold border border-slate-200 bg-white text-slate-600 hover:border-accent hover:text-accent transition-colors text-left max-w-full"
+                  >
+                    + {labelFor(name)}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Searchable multi-select: weapon names only (not simple/martial categories). */
+function WeaponProficiencyChipSelect({
+  options,
+  selected,
+  onChange,
+  showAdd = true,
+  showSelected = true,
+}: {
+  options: readonly string[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+  showAdd?: boolean;
+  showSelected?: boolean;
+}) {
+  const [query, setQuery] = useState('');
+  const addable = useMemo(() => {
+    if (!showAdd) return [];
+    const q = query.trim().toLowerCase();
+    return options.filter(
+      (w) => !selected.includes(w) && (!q || w.toLowerCase().includes(q)),
+    );
+  }, [options, selected, query, showAdd]);
+
+  return (
+    <div className="space-y-3 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+      {showSelected && (
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Selected</div>
+          <div className="flex flex-wrap gap-1.5 min-h-[2rem] items-start">
+            {selected.length === 0 ? (
+              <span className="text-[10px] text-muted italic py-1">None — search and tap a weapon to add.</span>
+            ) : (
+              [...selected]
+                .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                .map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    title="Remove"
+                    onClick={() => onChange(selected.filter((x) => x !== w))}
+                    className="px-2.5 py-1 rounded-full text-[10px] font-black border border-accent bg-accent text-white hover:bg-accent/90 transition-colors"
+                  >
+                    {w} ×
+                  </button>
+                ))
+            )}
+          </div>
         </div>
-      </div>
+      )}
+      {showAdd && (
+        <>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search weapons to add…"
+              className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-slate-200 bg-white outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Add</div>
+            <div className="max-h-52 overflow-y-auto flex flex-wrap gap-1.5">
+              {addable.length === 0 ? (
+                <span className="text-[10px] text-muted italic">No matches.</span>
+              ) : (
+                addable.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    title={name}
+                    onClick={() => {
+                      onChange([...selected, name]);
+                      setQuery('');
+                    }}
+                    className="px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-bold border border-slate-200 bg-white text-slate-600 hover:border-accent hover:text-accent transition-colors text-left max-w-full"
+                  >
+                    + {name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Searchable multi-select: weapon category lines (Simple/Martial). */
+function WeaponCategoryChipSelect({
+  options,
+  selected,
+  onChange,
+  showAdd = true,
+  showSelected = true,
+}: {
+  options: readonly string[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+  showAdd?: boolean;
+  showSelected?: boolean;
+}) {
+  const [query, setQuery] = useState('');
+  const addable = useMemo(() => {
+    if (!showAdd) return [];
+    const q = query.trim().toLowerCase();
+    return options.filter(
+      (w) => !selected.includes(w) && (!q || w.toLowerCase().includes(q)),
+    );
+  }, [options, selected, query, showAdd]);
+
+  return (
+    <div className="space-y-3 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+      {showSelected && (
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Selected</div>
+          <div className="flex flex-wrap gap-1.5 min-h-[2rem] items-start">
+            {selected.length === 0 ? (
+              <span className="text-[10px] text-muted italic py-1">None — search and tap a category to add.</span>
+            ) : (
+              [...selected]
+                .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                .map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    title="Remove"
+                    onClick={() => onChange(selected.filter((x) => x !== w))}
+                    className="px-2.5 py-1 rounded-full text-[10px] font-black border border-accent bg-accent text-white hover:bg-accent/90 transition-colors"
+                  >
+                    {w} ×
+                  </button>
+                ))
+            )}
+          </div>
+        </div>
+      )}
+      {showAdd && (
+        <>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search categories to add…"
+              className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-slate-200 bg-white outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Add</div>
+            <div className="max-h-52 overflow-y-auto flex flex-wrap gap-1.5">
+              {addable.length === 0 ? (
+                <span className="text-[10px] text-muted italic">No matches.</span>
+              ) : (
+                addable.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    title={name}
+                    onClick={() => {
+                      onChange([...selected, name]);
+                      setQuery('');
+                    }}
+                    className="px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-bold border border-slate-200 bg-white text-slate-600 hover:border-accent hover:text-accent transition-colors text-left max-w-full"
+                  >
+                    + {name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Searchable multi-select: armor training categories (Light/Medium/Heavy/Shields). */
+function ArmorCategoryChipSelect({
+  options,
+  selected,
+  onChange,
+  showAdd = true,
+  showSelected = true,
+}: {
+  options: readonly string[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+  showAdd?: boolean;
+  showSelected?: boolean;
+}) {
+  const [query, setQuery] = useState('');
+  const addable = useMemo(() => {
+    if (!showAdd) return [];
+    const q = query.trim().toLowerCase();
+    return options.filter(
+      (a) => !selected.includes(a) && (!q || a.toLowerCase().includes(q)),
+    );
+  }, [options, selected, query, showAdd]);
+
+  return (
+    <div className="space-y-3 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+      {showSelected && (
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Selected</div>
+          <div className="flex flex-wrap gap-1.5 min-h-[2rem] items-start">
+            {selected.length === 0 ? (
+              <span className="text-[10px] text-muted italic py-1">None — search and tap armor to add.</span>
+            ) : (
+              [...selected]
+                .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                .map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    title="Remove"
+                    onClick={() => onChange(selected.filter((x) => x !== name))}
+                    className="px-2.5 py-1 rounded-full text-[10px] font-black border border-accent bg-accent text-white hover:bg-accent/90 transition-colors"
+                  >
+                    {name} ×
+                  </button>
+                ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {showAdd && (
+        <>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search armor to add…"
+              className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-slate-200 bg-white outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-1.5">Add</div>
+            <div className="max-h-52 overflow-y-auto flex flex-wrap gap-1.5">
+              {addable.length === 0 ? (
+                <span className="text-[10px] text-muted italic">No matches.</span>
+              ) : (
+                addable.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    title={name}
+                    onClick={() => {
+                      onChange([...selected, name]);
+                      setQuery('');
+                    }}
+                    className="px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-bold border border-slate-200 bg-white text-slate-600 hover:border-accent hover:text-accent transition-colors text-left max-w-full"
+                  >
+                    + {name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -463,6 +747,10 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
   const [armorPickerOpen, setArmorPickerOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [levelUpOpen, setLevelUpOpen] = useState(false);
+  const [weaponCategoryOpen, setWeaponCategoryOpen] = useState(false);
+  const [weaponSpecificOpen, setWeaponSpecificOpen] = useState(false);
+  const [toolProfsOpen, setToolProfsOpen] = useState(false);
+  const [armorProfsOpen, setArmorProfsOpen] = useState(false);
   const [portraitDragActive, setPortraitDragActive] = useState(false);
   const [portraitError, setPortraitError] = useState<string | null>(null);
   const [portraitBusy, setPortraitBusy] = useState(false);
@@ -577,13 +865,29 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
     [character.skills],
   );
 
-  const weaponProfs = useMemo(
-    () => normalizeWeaponProficiencies(asProficiencyArray(character.weaponProficiencies)),
+  const weaponProfsRaw = useMemo(
+    () => asProficiencyArray(character.weaponProficiencies),
     [character.weaponProficiencies],
   );
-  const armorProfs = useMemo(
-    () => normalizeArmorProficiencies(asProficiencyArray(character.armorProficiencies)),
+  const weaponCategoryProfs = useMemo(
+    () => normalizeWeaponProficiencies(weaponProfsRaw),
+    [weaponProfsRaw],
+  );
+  const weaponSpecificProfs = useMemo(
+    () => weaponProfsRaw.filter((p) => isPhb2024WeaponName(p)),
+    [weaponProfsRaw],
+  );
+  const weaponCategoryPicks = useMemo(() => {
+    const cats = new Set<string>(PHB_2024_WEAPON_PROFICIENCY_CATEGORIES);
+    return weaponProfsRaw.filter((p) => cats.has(p));
+  }, [weaponProfsRaw]);
+  const armorProfsRaw = useMemo(
+    () => asProficiencyArray(character.armorProficiencies),
     [character.armorProficiencies],
+  );
+  const armorProfs = useMemo(
+    () => normalizeArmorProficiencies(armorProfsRaw),
+    [armorProfsRaw],
   );
   const toolProfs = useMemo(
     () => asProficiencyArray(character.toolProficiencies),
@@ -1648,33 +1952,80 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
                         <h3 className="text-xs font-black uppercase tracking-widest">Weapon proficiencies</h3>
                       </div>
                       <p className="text-[10px] text-muted leading-snug">
-                        PHB categories — simple vs martial weapons.
+                        PHB categories — simple vs martial weapons — plus optional specific weapon proficiencies.
                       </p>
-                      <div className="flex flex-wrap gap-1.5 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
-                        {PHB_2024_WEAPON_PROFICIENCY_CATEGORIES.map((name) => {
-                          const selected = weaponProfs.includes(name);
-                          return (
-                            <button
-                              key={name}
-                              type="button"
-                              onClick={() =>
-                                onUpdate({
-                                  ...character,
-                                  weaponProficiencies: toggleProficiencyPick(weaponProfs, name),
-                                })
-                              }
-                              className={cn(
-                                'px-3 py-1.5 rounded-lg text-[10px] font-black border transition-all',
-                                selected
-                                  ? 'bg-accent text-white border-accent shadow-sm'
-                                  : 'bg-white text-slate-600 border-slate-200 hover:border-accent/60',
-                              )}
-                            >
-                              {name}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <WeaponCategoryChipSelect
+                        options={PHB_2024_WEAPON_PROFICIENCY_CATEGORIES}
+                        selected={weaponCategoryPicks}
+                        onChange={(nextCats) => {
+                          const cats = new Set<string>(PHB_2024_WEAPON_PROFICIENCY_CATEGORIES);
+                          const kept = weaponProfsRaw.filter((p) => !cats.has(p));
+                          const merged = Array.from(new Set<string>([...kept, ...nextCats]));
+                          onUpdate({ ...character, weaponProficiencies: merged });
+                        }}
+                        showAdd={false}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setWeaponCategoryOpen((v) => !v)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
+                          Weapon categories ({weaponCategoryPicks.length})
+                        </span>
+                        <span className="text-xs font-black text-muted">
+                          {weaponCategoryOpen ? '▾' : '▸'}
+                        </span>
+                      </button>
+                      {weaponCategoryOpen && (
+                        <WeaponCategoryChipSelect
+                          options={PHB_2024_WEAPON_PROFICIENCY_CATEGORIES}
+                          selected={weaponCategoryPicks}
+                          onChange={(nextCats) => {
+                            const cats = new Set<string>(PHB_2024_WEAPON_PROFICIENCY_CATEGORIES);
+                            const kept = weaponProfsRaw.filter((p) => !cats.has(p));
+                            const merged = Array.from(new Set<string>([...kept, ...nextCats]));
+                            onUpdate({ ...character, weaponProficiencies: merged });
+                          }}
+                          showSelected={false}
+                        />
+                      )}
+                      <WeaponProficiencyChipSelect
+                        options={PHB_2024_WEAPON_PROFICIENCY_ALL}
+                        selected={weaponSpecificProfs}
+                        onChange={(nextSpecific) => {
+                          const kept = weaponProfsRaw.filter((p) => !isPhb2024WeaponName(p));
+                          const merged = Array.from(new Set<string>([...kept, ...nextSpecific]));
+                          onUpdate({ ...character, weaponProficiencies: merged });
+                        }}
+                        showAdd={false}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setWeaponSpecificOpen((v) => !v)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
+                          Specific weapons ({weaponSpecificProfs.length})
+                        </span>
+                        <span className="text-xs font-black text-muted">
+                          {weaponSpecificOpen ? '▾' : '▸'}
+                        </span>
+                      </button>
+                      {weaponSpecificOpen && (
+                        <WeaponProficiencyChipSelect
+                          options={PHB_2024_WEAPON_PROFICIENCY_ALL}
+                          selected={weaponSpecificProfs}
+                          onChange={(nextSpecific) => {
+                            // Preserve any existing non-weapon-name entries (categories, legacy strings, etc.),
+                            // and replace only the specific weapon-name picks.
+                            const kept = weaponProfsRaw.filter((p) => !isPhb2024WeaponName(p));
+                            const merged = Array.from(new Set<string>([...kept, ...nextSpecific]));
+                            onUpdate({ ...character, weaponProficiencies: merged });
+                          }}
+                          showSelected={false}
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -1685,31 +2036,42 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
                       <p className="text-[10px] text-muted leading-snug">
                         PHB armor training — light, medium, heavy, and shields.
                       </p>
-                      <div className="flex flex-wrap gap-1.5 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
-                        {PHB_2024_ARMOR_PROFICIENCY_CATEGORIES.map((name) => {
-                          const selected = armorProfs.includes(name);
-                          return (
-                            <button
-                              key={name}
-                              type="button"
-                              onClick={() =>
-                                onUpdate({
-                                  ...character,
-                                  armorProficiencies: toggleProficiencyPick(armorProfs, name),
-                                })
-                              }
-                              className={cn(
-                                'px-3 py-1.5 rounded-lg text-[10px] font-black border transition-all',
-                                selected
-                                  ? 'bg-accent text-white border-accent shadow-sm'
-                                  : 'bg-white text-slate-600 border-slate-200 hover:border-accent/60',
-                              )}
-                            >
-                              {name}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <ArmorCategoryChipSelect
+                        options={PHB_2024_ARMOR_PROFICIENCY_CATEGORIES}
+                        selected={armorProfs}
+                        onChange={(nextCats) => {
+                          const cats = new Set<string>(PHB_2024_ARMOR_PROFICIENCY_CATEGORIES);
+                          const kept = armorProfsRaw.filter((p) => !cats.has(p));
+                          const merged = Array.from(new Set<string>([...kept, ...nextCats]));
+                          onUpdate({ ...character, armorProficiencies: merged });
+                        }}
+                        showAdd={false}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setArmorProfsOpen((v) => !v)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
+                          Armor list ({armorProfs.length})
+                        </span>
+                        <span className="text-xs font-black text-muted">
+                          {armorProfsOpen ? '▾' : '▸'}
+                        </span>
+                      </button>
+                      {armorProfsOpen && (
+                        <ArmorCategoryChipSelect
+                          options={PHB_2024_ARMOR_PROFICIENCY_CATEGORIES}
+                          selected={armorProfs}
+                          onChange={(nextCats) => {
+                            const cats = new Set<string>(PHB_2024_ARMOR_PROFICIENCY_CATEGORIES);
+                            const kept = armorProfsRaw.filter((p) => !cats.has(p));
+                            const merged = Array.from(new Set<string>([...kept, ...nextCats]));
+                            onUpdate({ ...character, armorProficiencies: merged });
+                          }}
+                          showSelected={false}
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -1724,7 +2086,28 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
                         options={PHB_2024_TOOL_PROFICIENCY_ALL}
                         selected={toolProfs}
                         onChange={(next) => onUpdate({ ...character, toolProficiencies: next })}
+                        showAdd={false}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setToolProfsOpen((v) => !v)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
+                          Tool list ({toolProfs.length})
+                        </span>
+                        <span className="text-xs font-black text-muted">
+                          {toolProfsOpen ? '▾' : '▸'}
+                        </span>
+                      </button>
+                      {toolProfsOpen && (
+                        <ToolProficiencyChipSelect
+                          options={PHB_2024_TOOL_PROFICIENCY_ALL}
+                          selected={toolProfs}
+                          onChange={(next) => onUpdate({ ...character, toolProficiencies: next })}
+                          showSelected={false}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
