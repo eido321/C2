@@ -3,6 +3,7 @@ import { Character, Ability } from '@/types';
 import { maxSpellSlotTrackerSlots } from '@/config/constants';
 import { getModifier, formatBonus, getProficiencyBonus, getSkillEffectiveBonus } from './utils';
 import { effectiveWalkingSpeedFt } from '@/data/armor';
+import { aggregateSpecialInventoryModifiers } from '@/lib/specialInventoryModifiers';
 
 export async function exportCharacterPDF(character: Character): Promise<void> {
   const profBonus = character.proficiencyBonus ?? getProficiencyBonus(character.level);
@@ -49,7 +50,13 @@ export async function exportCharacterPDF(character: Character): Promise<void> {
     )}ft`,
   );
   set('EXHAUSTION', character.exhaustion || 0);
-  set('INIT',      formatBonus(character.initiative || getModifier(character.abilities.dex)));
+  {
+    const invMods = aggregateSpecialInventoryModifiers(character.specialInventoryItems);
+    const dexMod = getModifier(character.abilities.dex);
+    const misc = character.initiative ?? 0;
+    const prof = character.initiativeProficient ? profBonus : 0;
+    set('INIT', formatBonus(dexMod + prof + misc + invMods.initiative));
+  }
 
   // ── Ability scores ─────────────────────────────────────────────────────────
   const AB_FIELDS: Record<Ability, { mod: string; score: string; save: string }> = {

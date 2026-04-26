@@ -754,6 +754,8 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
   const [portraitDragActive, setPortraitDragActive] = useState(false);
   const [portraitError, setPortraitError] = useState<string | null>(null);
   const [portraitBusy, setPortraitBusy] = useState(false);
+  const [initiativeFocused, setInitiativeFocused] = useState(false);
+  const [initiativeEditingText, setInitiativeEditingText] = useState('');
   const portraitZoneRef = useRef<HTMLDivElement>(null);
   const portraitFileRef = useRef<HTMLInputElement>(null);
   const characterRef = useRef(character);
@@ -774,6 +776,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
   }, [character.id]);
 
   const compactSpells = character.compactSpellbook ?? false;
+  const profBonus = character.proficiencyBonus ?? getProficiencyBonus(character.level);
   const [levelDraft, setLevelDraft] = useState(() => String(character.level));
   const levelDraftRef = useRef(levelDraft);
   levelDraftRef.current = levelDraft;
@@ -893,6 +896,19 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
     () => asProficiencyArray(character.toolProficiencies),
     [character.toolProficiencies],
   );
+
+  const initiativeTotal = useMemo(() => {
+    const dexMod = getModifier(character.abilities.dex);
+    const misc = character.initiative ?? 0;
+    const prof = character.initiativeProficient ? profBonus : 0;
+    return dexMod + prof + misc + invItemMods.initiative;
+  }, [
+    character.abilities.dex,
+    character.initiative,
+    character.initiativeProficient,
+    profBonus,
+    invItemMods.initiative,
+  ]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -1346,7 +1362,6 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
     });
   };
 
-  const profBonus = character.proficiencyBonus ?? getProficiencyBonus(character.level);
   const perceptionSkill = character.skills.find((s) => s.name === 'Perception');
   const perceptionItemSkill = invItemMods.skills['Perception'] ?? 0;
   const passiveSkillPart = perceptionSkill
@@ -1822,9 +1837,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
                     </div>
                     <div>
                       <div className="text-[10px] font-black uppercase text-muted">Initiative</div>
-                      <div className="text-xl font-black">
-                        {formatBonus(getModifier(character.abilities.dex) + invItemMods.initiative)}
-                      </div>
+                      <div className="text-xl font-black">{formatBonus(initiativeTotal)}</div>
                     </div>
                   </div>
                 </div>
@@ -1892,6 +1905,68 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
                                 <div className="flex-1 h-px bg-slate-100" />
                               </div>
                               <div className="space-y-0.5">
+                                {ability === 'dex' && (
+                                  <div className="flex items-center gap-2 py-0.5 group">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        onUpdate({
+                                          ...character,
+                                          initiativeProficient: !character.initiativeProficient,
+                                        })
+                                      }
+                                      title={
+                                        character.initiativeProficient
+                                          ? 'Remove initiative proficiency'
+                                          : 'Add initiative proficiency'
+                                      }
+                                      className={cn(
+                                        'w-3.5 h-3.5 rounded-full border transition-colors shrink-0',
+                                        character.initiativeProficient
+                                          ? 'bg-accent border-accent'
+                                          : 'bg-transparent border-ink/30 hover:border-accent/60',
+                                      )}
+                                    />
+                                    {/* spacer to align with SkillRow's expertise dot */}
+                                    <span className="w-3.5 h-3.5 shrink-0" />
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      title="Initiative modifier (DEX + proficiency if checked + misc + item bonuses). Edit misc on blur."
+                                      value={
+                                        initiativeFocused
+                                          ? initiativeEditingText
+                                          : formatBonus(initiativeTotal)
+                                      }
+                                      onFocus={() => {
+                                        setInitiativeFocused(true);
+                                        setInitiativeEditingText(String(character.initiative ?? 0));
+                                      }}
+                                      onChange={(e) => setInitiativeEditingText(e.target.value)}
+                                      onBlur={() => {
+                                        setInitiativeFocused(false);
+                                        const t = initiativeEditingText
+                                          .trim()
+                                          .replace(/\u2212/g, '-')
+                                          .replace(/^\+/, '');
+                                        if (t === '' || t === '-') {
+                                          onUpdate({ ...character, initiative: 0 });
+                                          setInitiativeEditingText('');
+                                          return;
+                                        }
+                                        const n = parseInt(t, 10);
+                                        if (!Number.isNaN(n)) onUpdate({ ...character, initiative: n });
+                                        setInitiativeEditingText('');
+                                      }}
+                                      className={cn(
+                                        'w-10 shrink-0 font-mono text-xs text-center tabular-nums rounded border py-0.5 outline-none focus:border-accent',
+                                        'border-transparent bg-slate-50/50 text-ink/70 group-hover:border-slate-200 dark:group-hover:border-dark-border',
+                                      )}
+                                    />
+                                    <span className="flex-1 text-xs font-medium truncate">Initiative</span>
+                                    <span className="text-[9px] uppercase font-bold text-ink/30 italic shrink-0">dex</span>
+                                  </div>
+                                )}
                                 {group.map((skill) => (
                                   <SkillRow
                                     key={skill.name}

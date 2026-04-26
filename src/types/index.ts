@@ -187,7 +187,10 @@ export interface Character {
     temp: number;
   };
   ac: number;
+  /** Misc initiative modifier (added on top of Dex, proficiency if enabled, and item bonuses). */
   initiative: number;
+  /** If true, add proficiency bonus to initiative (Alert feat, house rules, etc.). */
+  initiativeProficient?: boolean;
   speed: string;
   size?: string;
   
@@ -336,6 +339,7 @@ export const INITIAL_CHARACTER: Character = {
   hp: { current: 10, max: 10, temp: 0 },
   ac: 10,
   initiative: 0,
+  initiativeProficient: false,
   speed: '30ft',
   size: 'Medium',
   hitDice: { total: '1d10', remaining: 1 },
