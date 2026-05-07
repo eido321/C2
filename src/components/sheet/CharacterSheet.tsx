@@ -62,6 +62,7 @@ import {
   ABILITIES,
   ALIGNMENTS,
   CONDITIONS,
+  DAMAGE_TYPES,
   SUBCLASSES,
   maxSpellSlotTrackerSlots,
 } from '@/config/constants';
@@ -422,6 +423,84 @@ function ToolProficiencyChipSelect({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** Searchable multi-select for damage defenses (resist/vuln/immune). */
+function DamageTypeChipSelect({
+  selected,
+  onChange,
+  placeholder,
+}: {
+  selected: string[];
+  onChange: (next: string[]) => void;
+  placeholder: string;
+}) {
+  const [query, setQuery] = useState('');
+  const addable = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return DAMAGE_TYPES.filter(
+      (t) => !selected.includes(t) && (!q || t.toLowerCase().includes(q)),
+    );
+  }, [selected, query]);
+
+  return (
+    <div className="space-y-3 border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+      <div className="flex flex-wrap gap-1.5 min-h-[2rem] items-start">
+        {selected.length === 0 ? (
+          <span className="text-[10px] text-muted italic py-1">None.</span>
+        ) : (
+          [...selected]
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+            .map((t) => (
+              <button
+                key={t}
+                type="button"
+                title="Remove"
+                onClick={() => onChange(selected.filter((x) => x !== t))}
+                className="px-2.5 py-1 rounded-full text-[10px] font-black border border-accent bg-accent text-white hover:bg-accent/90 transition-colors"
+              >
+                {t} ×
+              </button>
+            ))
+        )}
+      </div>
+
+      <div className="relative">
+        <Search
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          size={14}
+        />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={placeholder}
+          className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-slate-200 bg-white outline-none focus:border-accent"
+        />
+      </div>
+
+      <div className="max-h-40 overflow-y-auto flex flex-wrap gap-1.5">
+        {addable.length === 0 ? (
+          <span className="text-[10px] text-muted italic">No matches.</span>
+        ) : (
+          addable.map((t) => (
+            <button
+              key={t}
+              type="button"
+              title={t}
+              onClick={() => {
+                onChange([...selected, t]);
+                setQuery('');
+              }}
+              className="px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-bold border border-slate-200 bg-white text-slate-600 hover:border-accent hover:text-accent transition-colors text-left max-w-full"
+            >
+              + {t}
+            </button>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -2454,6 +2533,39 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
                           className="w-12 text-center text-xl font-black bg-transparent outline-none focus:text-accent"
                         />
                         <span className="text-[8px] font-bold text-slate-400 uppercase mt-1">Level</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div className="section-header">
+                      <Layers size={18} className="text-accent" />
+                      <h3 className="text-xs font-black uppercase tracking-widest">Damage defenses</h3>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-muted">Resistances</div>
+                        <DamageTypeChipSelect
+                          selected={character.damageResistances ?? []}
+                          onChange={(next) => onUpdate({ ...character, damageResistances: next })}
+                          placeholder="Search damage types to resist…"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-muted">Vulnerabilities</div>
+                        <DamageTypeChipSelect
+                          selected={character.damageVulnerabilities ?? []}
+                          onChange={(next) => onUpdate({ ...character, damageVulnerabilities: next })}
+                          placeholder="Search damage types to be vulnerable to…"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-muted">Immunities</div>
+                        <DamageTypeChipSelect
+                          selected={character.damageImmunities ?? []}
+                          onChange={(next) => onUpdate({ ...character, damageImmunities: next })}
+                          placeholder="Search damage types to be immune to…"
+                        />
                       </div>
                     </div>
                   </div>

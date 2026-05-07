@@ -93,3 +93,19 @@ export const CONDITIONS = [
   'Incapacitated', 'Invisible', 'Paralyzed', 'Petrified',
   'Poisoned', 'Restrained', 'Stunned', 'Unconscious'
 ] as const;
+
+export const DAMAGE_TYPES = [
+  'Acid',
+  'Bludgeoning',
+  'Cold',
+  'Fire',
+  'Force',
+  'Lightning',
+  'Necrotic',
+  'Piercing',
+  'Poison',
+  'Psychic',
+  'Radiant',
+  'Slashing',
+  'Thunder',
+] as const;

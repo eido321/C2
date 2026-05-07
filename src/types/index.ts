@@ -242,6 +242,11 @@ export interface Character {
   conditions: string[];
   exhaustion: number;
 
+  /** Combat tab: damage defenses. Stored as plain labels (e.g. "Fire", "Slashing"). */
+  damageResistances?: string[];
+  damageVulnerabilities?: string[];
+  damageImmunities?: string[];
+
   /** Name of the equipped armor piece ('' = unarmored) */
   equippedArmor?: string;
   /** Whether a shield is currently equipped */
@@ -367,6 +372,9 @@ export const INITIAL_CHARACTER: Character = {
   hiddenTabs: ['lore', 'companions', 'wildshape', 'faith'],
   conditions: [],
   exhaustion: 0,
+  damageResistances: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
   spellcasting: {
     ability: 'int',
     slots: {
