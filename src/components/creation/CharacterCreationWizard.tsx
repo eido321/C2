@@ -494,18 +494,28 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
           ];
         })()
       : [];
-    const gamingSetEntry =
-      s.background && s.gamingSetPick.trim()
-        ? [
-            {
-              id: `${id}_gamingset`,
-              name: `Gaming set (${s.background.name})`,
-              description: s.gamingSetPick.trim(),
-              source: s.background.name,
-            },
-          ]
-        : [];
-    const racialTraits = [...racialFromRace, ...backgroundFeatEntry, ...gamingSetEntry];
+    const racialTraits = [...racialFromRace, ...backgroundFeatEntry];
+
+    const backgroundToolProficiencies = (() => {
+      if (!s.background) return [];
+      const toolLine = (s.background.toolProficiency || '').trim();
+      const toolLineLower = toolLine.toLowerCase();
+
+      // Background tool line can be a direct tool name or "Choose one kind of X".
+      if (toolLineLower.includes('gaming set')) {
+        return s.gamingSetPick.trim() ? [`Gaming set (${s.gamingSetPick.trim()})`] : [];
+      }
+      if (toolLineLower.includes('musical instrument')) {
+        return s.instrumentPick.trim()
+          ? [`Musical instrument (${s.instrumentPick.trim()})`]
+          : [];
+      }
+      if (toolLineLower.includes("artisan's tools")) {
+        return s.artisanBackgroundTool.trim() ? [s.artisanBackgroundTool.trim()] : [];
+      }
+
+      return toolLine ? [toolLine] : [];
+    })();
 
     // Collect all proficient skills
     const bgSkills = s.background?.skills ?? [];
@@ -722,6 +732,7 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
       proficiencyBonus: profBonus,
       abilities: ab,
       proficiencies: meta.saves as string[],
+      toolProficiencies: backgroundToolProficiencies,
       skills,
       hp: { max: Math.max(1, maxHP), current: Math.max(1, maxHP), temp: 0 },
       ac,
