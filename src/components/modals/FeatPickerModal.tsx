@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { FEAT_LIST, FeatTemplate, FeatCategory } from '@/data/feats';
 import { DND_CLASSES } from '@/config/constants';
 import type { FeatureLibraryChoicePayload } from '@/lib/featPickerOrderChoices';
+import { CRAFTER_FAST_CRAFTING_ARTISAN_TOOLS } from '@/data/crafterFastCrafting';
 import {
   LIBRARY_CHOICE_ACCENT_STYLES,
   matchLibraryChoiceRule,
@@ -104,6 +105,8 @@ export const FeatPickerModal: React.FC<FeatPickerModalProps> = ({
   const [selected, setSelected] = useState<FeatTemplate | null>(null);
   /** Option id from `LIBRARY_CHOICE_RULES` when the selected row requires a branch pick */
   const [libraryChoiceOptionId, setLibraryChoiceOptionId] = useState<string | null>(null);
+  /** Crafter feat (Origin) — pick 3 Fast Crafting artisan tools */
+  const [crafterFastCraftingTools, setCrafterFastCraftingTools] = useState<string[]>([]);
 
   const choiceRule = useMemo(
     () => matchLibraryChoiceRule(selected, characterClass),
@@ -112,6 +115,7 @@ export const FeatPickerModal: React.FC<FeatPickerModalProps> = ({
 
   useEffect(() => {
     setLibraryChoiceOptionId(null);
+    setCrafterFastCraftingTools([]);
   }, [selected?.name, selected?.source, selected?.description, selected?.category]);
 
   const categoryTabs = useMemo((): (FeatCategory | 'All')[] => {
@@ -209,6 +213,9 @@ export const FeatPickerModal: React.FC<FeatPickerModalProps> = ({
     a.name === b.name &&
     a.description === b.description &&
     a.acquiredAtLevel === b.acquiredAtLevel;
+
+  const selectedIsCrafterFeat =
+    !!selected && selected.category === 'Feat' && selected.name.trim() === 'Crafter';
 
   return (
     <div className={cn('fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4', stackZClassName)}>
@@ -526,11 +533,51 @@ export const FeatPickerModal: React.FC<FeatPickerModalProps> = ({
                   </div>
                 )}
 
+                {selectedIsCrafterFeat && (
+                  <div className="rounded-xl border border-amber-300 bg-amber-50/80 p-3 space-y-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-amber-800">
+                      Crafter feat — Fast Crafting tools ({crafterFastCraftingTools.length}/3)
+                    </div>
+                    <p className="text-[11px] text-amber-950/80 leading-relaxed">
+                      Choose <span className="font-black">three different</span> Artisan&apos;s Tools from the PHB Fast Crafting table.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CRAFTER_FAST_CRAFTING_ARTISAN_TOOLS.map((tool) => {
+                        const picked = crafterFastCraftingTools.includes(tool);
+                        const full = !picked && crafterFastCraftingTools.length >= 3;
+                        return (
+                          <button
+                            key={tool}
+                            type="button"
+                            onClick={() =>
+                              setCrafterFastCraftingTools((prev) => {
+                                if (prev.includes(tool)) return prev.filter((x) => x !== tool);
+                                if (prev.length >= 3) return prev;
+                                return [...prev, tool];
+                              })
+                            }
+                            disabled={full}
+                            className={cn(
+                              'px-2 py-1 rounded text-[10px] font-bold border transition-all',
+                              picked
+                                ? 'bg-amber-800 text-white border-amber-800'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-amber-500 disabled:opacity-40 disabled:cursor-not-allowed',
+                            )}
+                          >
+                            {tool}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
                     if (!selected) return;
                     if (choiceRule && !libraryChoiceOptionId) return;
+                    if (selectedIsCrafterFeat && crafterFastCraftingTools.length < 3) return;
 
                     let featOut: FeatTemplate = selected;
                     let payload: FeatureLibraryChoicePayload | undefined;
@@ -541,10 +588,25 @@ export const FeatPickerModal: React.FC<FeatPickerModalProps> = ({
                       payload = built.payload;
                     }
 
+                    if (selectedIsCrafterFeat) {
+                      payload = {
+                        kind: 'feat_crafter_fast_crafting',
+                        value: crafterFastCraftingTools,
+                      };
+                      featOut = {
+                        ...featOut,
+                        description: `${featOut.description}\n\n— Fast Crafting Artisan’s Tools: ${crafterFastCraftingTools.join(', ')}.`,
+                      };
+                    }
+
                     onAdd(featOut, payload);
                     onClose();
                   }}
-                  disabled={!selected || (!!choiceRule && !libraryChoiceOptionId)}
+                  disabled={
+                    !selected ||
+                    (!!choiceRule && !libraryChoiceOptionId) ||
+                    (selectedIsCrafterFeat && crafterFastCraftingTools.length < 3)
+                  }
                   className="w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-black py-3 rounded-xl transition-all text-sm uppercase tracking-widest shadow-lg shadow-accent/20"
                 >
                   <Plus size={16} />

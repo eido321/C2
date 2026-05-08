@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X, ChevronLeft, ChevronRight, Check, Sparkles, FileText,
@@ -19,7 +19,6 @@ import { MUSICAL_INSTRUMENT_PHB_2024 } from '@/data/musicalInstruments';
 import { GAMING_SET_PHB_2024 } from '@/data/gamingSets';
 import { toughFeatTotalHpBonus } from '@/lib/toughFeatHp';
 import {
-  ARTISAN_BACKGROUND_TOOL_CHOICES,
   CRAFTER_FAST_CRAFTING_ARTISAN_TOOLS,
 } from '@/data/crafterFastCrafting';
 import { ABILITY_LABELS as BG_ABILITY_LABELS } from '@/data/backgrounds';
@@ -207,6 +206,18 @@ interface Props {
 export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, onClose }) => {
   const [step, setStep] = useState(0); // 0 = welcome
   const [s, setS] = useState<WizardState>(INIT);
+
+  // Keep Crafter-related sub-choices valid when switching feats/backgrounds.
+  useEffect(() => {
+    if (s.background?.feat !== 'Crafter') return;
+    const allowed = new Set<string>(CRAFTER_FAST_CRAFTING_ARTISAN_TOOLS);
+    if (s.artisanBackgroundTool && !allowed.has(s.artisanBackgroundTool)) {
+      setS((prev) => ({ ...prev, artisanBackgroundTool: '' }));
+    }
+    if (s.crafterFeatTools.some((t) => !allowed.has(t))) {
+      setS((prev) => ({ ...prev, crafterFeatTools: prev.crafterFeatTools.filter((t) => allowed.has(t)) }));
+    }
+  }, [s.background?.feat, s.artisanBackgroundTool, s.crafterFeatTools]);
   const [jsonImportError, setJsonImportError] = useState<string | null>(null);
   const jsonFileRef = useRef<HTMLInputElement>(null);
   const upd = (patch: Partial<WizardState>) => setS(prev => ({ ...prev, ...patch }));
@@ -1626,10 +1637,10 @@ export const CharacterCreationWizard: React.FC<Props> = ({ onConfirm, onBlank, o
                   Artisan background — one Artisan&apos;s tool ({s.artisanBackgroundTool ? '1' : '0'}/1)
                 </div>
                 <p className="text-[10px] text-amber-900/80 leading-snug">
-                  PHB: &quot;Choose one kind of Artisan&apos;s Tools.&quot; Your equipment package uses this set.
+                  Choose from the Crafter feat&apos;s Fast Crafting table (this keeps your background tool aligned with Fast Crafting gear options).
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {ARTISAN_BACKGROUND_TOOL_CHOICES.map((tool) => {
+                  {CRAFTER_FAST_CRAFTING_ARTISAN_TOOLS.map((tool) => {
                     const picked = s.artisanBackgroundTool === tool;
                     return (
                       <button

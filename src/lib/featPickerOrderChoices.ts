@@ -11,7 +11,8 @@ export type FeatureLibraryChoicePayload =
   | { kind: 'barbarian_rage_of_the_wilds'; value: 'bear' | 'eagle' | 'wolf' }
   | { kind: 'barbarian_aspect_of_the_wilds'; value: 'owl' | 'panther' | 'salmon' }
   | { kind: 'barbarian_power_of_the_wilds'; value: 'falcon' | 'lion' | 'ram' }
-  | { kind: 'feat_elemental_adept'; value: 'acid' | 'cold' | 'fire' | 'lightning' | 'thunder' };
+  | { kind: 'feat_elemental_adept'; value: 'acid' | 'cold' | 'fire' | 'lightning' | 'thunder' }
+  | { kind: 'feat_crafter_fast_crafting'; value: string[] };
 
 /** @deprecated use FeatureLibraryChoicePayload */
 export type FeatClassOrderChoice =

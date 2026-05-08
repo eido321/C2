@@ -1248,6 +1248,11 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ character, onUpd
           },
         };
       }
+      if (libraryChoice.kind === 'feat_crafter_fast_crafting') {
+        const next = new Set<string>(c.toolProficiencies ?? []);
+        for (const t of libraryChoice.value) next.add(t);
+        return { ...c, toolProficiencies: [...next] };
+      }
       return c;
     };
 
