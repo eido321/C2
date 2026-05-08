@@ -101,8 +101,6 @@ export const FeatPickerModal: React.FC<FeatPickerModalProps> = ({
   const [filterSubclass, setFilterSubclass] = useState<string>('All');
   /** Feat / racial trait source (General, Origin, species name, …). */
   const [filterOther, setFilterOther] = useState<string>('All');
-  /** When viewing Feats: Origin (level 1 backgrounds) vs General (level 4+) vs all feat rows. */
-  const [featGroup, setFeatGroup] = useState<'all' | 'origin' | 'general'>('all');
   const [selected, setSelected] = useState<FeatTemplate | null>(null);
   /** Option id from `LIBRARY_CHOICE_RULES` when the selected row requires a branch pick */
   const [libraryChoiceOptionId, setLibraryChoiceOptionId] = useState<string | null>(null);
@@ -190,14 +188,9 @@ export const FeatPickerModal: React.FC<FeatPickerModalProps> = ({
         }
       }
 
-      let matchesFeatGroup = true;
-      if (filterCategory === 'Feat' && featGroup !== 'all' && f.category === 'Feat') {
-        if (featGroup === 'origin') matchesFeatGroup = f.isOrigin === true;
-        else if (featGroup === 'general') matchesFeatGroup = f.isOrigin !== true;
-      }
-      return matchesCategory && matchesSource && matchesFeatGroup && matchesFeatureSearch(search, f);
+      return matchesCategory && matchesSource && matchesFeatureSearch(search, f);
     });
-  }, [search, filterCategory, filterClass, filterSubclass, filterOther, featGroup, catalog]);
+  }, [search, filterCategory, filterClass, filterSubclass, filterOther, catalog]);
 
   const handleCategoryChange = (cat: FeatCategory | 'All') => {
     if (allowedCategories?.length === 1) return;
@@ -206,7 +199,6 @@ export const FeatPickerModal: React.FC<FeatPickerModalProps> = ({
     setFilterClass('All');
     setFilterSubclass('All');
     setFilterOther('All');
-    setFeatGroup('all');
     setSelected(null);
   };
 
@@ -267,34 +259,6 @@ export const FeatPickerModal: React.FC<FeatPickerModalProps> = ({
                   )}
                 >
                   {cat === 'All' ? 'All' : CATEGORY_LABELS[cat]}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Origin vs General when browsing feats */}
-          {filterCategory === 'Feat' && (
-            <div className="flex gap-1.5 flex-wrap items-center">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mr-1">Feat type</span>
-              {(['all', 'origin', 'general'] as const).map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => {
-                    setFeatGroup(g);
-                    setFilterClass('All');
-                    setFilterSubclass('All');
-                    setFilterOther('All');
-                    setSelected(null);
-                  }}
-                  className={cn(
-                    'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all',
-                    featGroup === g
-                      ? 'bg-violet-600 text-white border-violet-600'
-                      : 'bg-violet-50 text-violet-700 border-violet-200 hover:border-violet-400',
-                  )}
-                >
-                  {g === 'all' ? 'All feats' : g === 'origin' ? 'Origin' : 'General'}
                 </button>
               ))}
             </div>
