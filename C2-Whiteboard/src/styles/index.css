@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cinzel:wght@500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'EB Garamond', Georgia, serif;
+  --font-display: 'Cinzel', serif;
+
+  --color-parchment: #f4ecd8;
+  --color-parchment-deep: #e8dcc0;
+  --color-ink: #2a2118;
+  --color-ink-soft: #5c5040;
+  --color-accent: #7c2d12;
+  --color-accent-soft: #9a3412;
+  --color-gold: #b08d57;
+  --color-panel: #ffffff;
+  --color-panel-muted: #f8fafc;
+  --color-line: #e2e8f0;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-slate-100 text-slate-800 font-sans antialiased;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer components {
+  .panel-btn {
+    @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900;
+  }
+
+  .icon-btn {
+    @apply flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400;
+  }
+
+  .field-input {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition-colors focus:border-accent/60 focus:ring-2 focus:ring-accent/15;
+  }
+
+  .parchment {
+    background-color: var(--color-parchment);
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(176, 141, 87, 0.08), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(124, 45, 18, 0.06), transparent 40%);
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.no-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 999px;
+}
+.no-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
