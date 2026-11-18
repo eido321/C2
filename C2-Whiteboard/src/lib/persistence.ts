@@ -19,7 +19,7 @@ export function saveWhiteboard(board: Whiteboard): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(board));
   } catch {
-    // Ignore quota / serialization errors — persistence is best-effort.
+    throw new Error('Device storage is full or unavailable. Export your sheet to keep a copy.');
   }
 }
 
@@ -30,3 +30,4 @@ export function clearWhiteboard(): void {
     // no-op
   }
 }
+

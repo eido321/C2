@@ -1,17 +1,20 @@
-import {ArrowRight, FilePlus2, ScrollText, X} from 'lucide-react';
+import {useEffect, useMemo, useRef} from 'react';
+import {ArrowRight, FilePlus2, ScrollText, LogIn} from 'lucide-react';
 import type {Block, WhiteboardTemplate} from '@/types';
 import {BLOCK_LABELS} from '@/lib/blockDefaults';
 import {TEMPLATE_GROUPS} from '@/data/templates';
 
-interface Props {
+interface Props { children: React.ReactNode; busy: boolean;
   onSelectBlank: () => void;
   onSelectTemplate: (template: WhiteboardTemplate) => void;
   onContinue?: () => void;
-  onClose?: () => void;
+  jumpToTemplates: boolean;
+  user: string | null;
+  onAccount: () => void;
 }
 
-function TemplatePreview({build, accent}: {build: () => Block[]; accent: string}) {
-  const blocks = build();
+function TemplatePreview({blocks, accent}: {blocks: Block[]; accent: string}) {
+
   const minX = Math.min(...blocks.map((b) => b.x));
   const minY = Math.min(...blocks.map((b) => b.y));
   const maxX = Math.max(...blocks.map((b) => b.x + b.width));
@@ -49,33 +52,38 @@ function TemplateCard({
   template: WhiteboardTemplate;
   onSelect: (template: WhiteboardTemplate) => void;
 }) {
+  const blocks = useMemo(() => template.build(), [template]);
   return (
     <button
       onClick={() => onSelect(template)}
       className="group flex flex-col items-start rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-xl"
     >
       <div className="mb-3 w-full">
-        <TemplatePreview build={template.build} accent={template.accent} />
+        <TemplatePreview blocks={blocks} accent={template.accent} />
       </div>
       <h3 className="font-display text-lg font-bold text-ink">{template.name}</h3>
       <p className="mt-1 line-clamp-2 text-sm text-ink-soft">{template.description}</p>
       <span className="mt-3 text-xs font-medium text-slate-400">
-        {template.build().length} blocks · {BLOCK_LABELS.abilityScores}, {BLOCK_LABELS.statBlock}…
+        {blocks.length} blocks · {BLOCK_LABELS.abilityScores}, {BLOCK_LABELS.statBlock}…
       </span>
     </button>
   );
 }
 
-export function StartScreen({onSelectBlank, onSelectTemplate, onContinue, onClose}: Props) {
+export function StartScreen({onSelectBlank, onSelectTemplate, onContinue, user, onAccount, children, busy, jumpToTemplates}: Props) {
+  const templateHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (jumpToTemplates) templateHeading.current?.scrollIntoView({block: 'nearest'});
+  }, [jumpToTemplates]);
   return (
-    <div className="parchment fixed inset-0 z-50 flex items-center justify-center overflow-auto p-6">
-      {onClose ? (
-        <button className="icon-btn absolute right-5 top-5 bg-white/70" onClick={onClose} title="Close">
-          <X size={18} />
-        </button>
-      ) : null}
-
-      <div className="w-full max-w-5xl py-10">
+    <div className="parchment fixed inset-0 z-50 flex items-start justify-center overflow-auto p-6">
+      <fieldset disabled={busy} className="screen-enter w-full min-w-0 max-w-5xl pb-10">
+        <div className="mb-3 flex min-h-10 items-center justify-end gap-3">
+          {user && <span className="truncate text-sm text-ink-soft">{user}</span>}
+          <button onClick={onAccount} className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-soft">
+            {!user && <LogIn size={16} />} {user ? 'Sign out' : 'Login'}
+          </button>
+        </div>
         <div className="mb-10 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-white shadow-lg">
             <ScrollText size={28} />
@@ -86,8 +94,9 @@ export function StartScreen({onSelectBlank, onSelectTemplate, onContinue, onClos
           </p>
         </div>
 
+        {children}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-sm font-bold uppercase tracking-wide text-ink-soft">Start a new sheet</h2>
+          <h2 ref={templateHeading} className="font-display text-sm font-bold uppercase tracking-wide text-ink-soft">Start a new sheet</h2>
           {onContinue ? (
             <button
               onClick={onContinue}
@@ -127,7 +136,10 @@ export function StartScreen({onSelectBlank, onSelectTemplate, onContinue, onClos
             </div>
           </section>
         ))}
-      </div>
+      </fieldset>
     </div>
   );
 }
+
+
+

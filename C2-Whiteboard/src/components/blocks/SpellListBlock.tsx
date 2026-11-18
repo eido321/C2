@@ -55,20 +55,6 @@ function createSpell(name = ''): SpellEntry {
   return {id: uid('sp'), prepared: true, name, components: {...DEFAULT_COMPONENTS}};
 }
 
-function detailRows(spell: SpellEntry): {label: string; value: string}[] {
-  const rows = [
-    {label: 'School', value: spell.school},
-    {label: 'Casting', value: spell.castingTime},
-    {label: 'Range', value: spell.range},
-    {label: 'Components', value: componentsLabel(spell.components)},
-    {label: 'Duration', value: spell.duration},
-    {label: 'Attack / Save', value: spell.attackSave},
-    {label: 'Damage / Effect', value: spell.damageEffect},
-    {label: 'Source', value: spell.source},
-  ];
-  return rows.filter((row): row is {label: string; value: string} => Boolean(row.value));
-}
-
 function resizeTextarea(el: HTMLTextAreaElement | null) {
   if (!el) return;
   el.style.height = 'auto';
@@ -302,7 +288,6 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
             <div className="space-y-1.5 p-1.5">
               {group.spells.map((spell) => {
                 const meta = metaFor(spell);
-                const details = detailRows(spell);
                 const expanded = spell.expanded ?? false;
                 const description = spell.description || spell.notes || '';
                 const muted = group.level > 0 && !spell.prepared;
@@ -401,18 +386,11 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
                     ) : null}
                     {expanded ? (
                       <div className="mt-2 rounded-lg border border-gold/25 bg-parchment/45 p-2">
-                        {details.length ? (
-                          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 font-sans text-[10px] leading-snug">
-                            {details.map((detail) => (
-                              <div key={detail.label} className="min-w-0">
-                                <dt className="font-bold uppercase tracking-wide text-accent/70">{detail.label}</dt>
-                                <dd className="whitespace-pre-wrap text-slate-600">{detail.value}</dd>
-                              </div>
-                            ))}
-                          </dl>
-                        ) : null}
                         {editing ? (
-                          <div className="mt-2" onPointerDown={(e) => e.stopPropagation()}>
+                          <div onPointerDown={(e) => e.stopPropagation()}>
+                            <span className="mb-1 block font-sans text-[10px] font-bold uppercase tracking-wide text-accent/70">
+                              Description
+                            </span>
                             <textarea
                               ref={(el) => {
                                 notesRefs.current[spell.id] = el;
@@ -427,9 +405,12 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
                             />
                           </div>
                         ) : description ? (
-                          <p className="mt-2 whitespace-pre-wrap border-t border-gold/20 pt-2 text-[0.9em] italic leading-snug text-slate-500">
-                            {description}
-                          </p>
+                          <div>
+                            <span className="mb-1 block font-sans text-[10px] font-bold uppercase tracking-wide text-accent/70">
+                              Description
+                            </span>
+                            <p className="whitespace-pre-wrap text-[0.9em] italic leading-snug text-slate-500">{description}</p>
+                          </div>
                         ) : null}
                       </div>
                     ) : null}

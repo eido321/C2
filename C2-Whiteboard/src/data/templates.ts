@@ -4,6 +4,7 @@ import type {
   BlockContentMap,
   BlockStyle,
   BlockType,
+  SpellColumn,
   SpellEntry,
   SpellLevelGroup,
   WhiteboardTemplate,
@@ -73,6 +74,15 @@ function buildAbilities(priority: AbilityKey[]): BuiltAbilities {
 }
 
 const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
+const TEMPLATE_SPELL_COLUMNS: SpellColumn[] = [
+  'castingTime',
+  'range',
+  'components',
+  'duration',
+  'attackSave',
+  'damageEffect',
+  'concentration',
+];
 
 // ── Armour class model ──────────────────────────────────────────────────────
 type Defense =
@@ -134,7 +144,7 @@ interface SpellData {
 
 const SPELL_DETAILS: Record<
   string,
-  Partial<Pick<SpellEntry, 'school' | 'castingTime' | 'range' | 'material' | 'duration' | 'concentration' | 'ritual' | 'attackSave' | 'damageEffect' | 'source' | 'description' | 'notes'>>
+  Partial<Pick<SpellEntry, 'school' | 'castingTime' | 'range' | 'material' | 'duration' | 'concentration' | 'ritual' | 'attackSave' | 'damageEffect' | 'description' | 'notes'>>
 > = {
   'Vicious Mockery': {
     school: 'Enchantment',
@@ -142,51 +152,53 @@ const SPELL_DETAILS: Record<
     duration: 'Instant',
     attackSave: 'WIS save',
     damageEffect: 'Psychic damage + disadvantage',
-    source: 'PHB',
+    description: 'Insult one creature you can see. On a failed Wisdom save it takes psychic damage and has disadvantage on its next attack roll.',
   },
-  Prestidigitation: {school: 'Transmutation', range: '10 ft', duration: 'Up to 1 hour', damageEffect: 'Minor magical effect', source: 'PHB'},
-  'Healing Word': {school: 'Abjuration', castingTime: 'Bonus action', range: '60 ft', duration: 'Instant', damageEffect: 'Heal 2d4 + mod', source: 'PHB'},
-  'Faerie Fire': {school: 'Evocation', range: '60 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'DEX save', damageEffect: 'Advantage vs outlined creatures', source: 'PHB'},
-  'Dissonant Whispers': {school: 'Enchantment', range: '60 ft', duration: 'Instant', attackSave: 'WIS save', damageEffect: 'Psychic damage + reaction move', source: 'PHB'},
-  'Charm Person': {school: 'Enchantment', range: '30 ft', duration: '1 hour', attackSave: 'WIS save', damageEffect: 'Charmed humanoid', source: 'PHB'},
-  Heroism: {school: 'Enchantment', range: 'Touch', duration: 'Concentration, 1 minute', concentration: true, damageEffect: 'Temp HP each turn; immune frightened', source: 'PHB'},
-  'Tasha’s Hideous Laughter': {school: 'Enchantment', range: '30 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'WIS save', damageEffect: 'Prone/incapacitated laughing', source: 'PHB'},
-  'Sacred Flame': {school: 'Evocation', range: '60 ft', duration: 'Instant', attackSave: 'DEX save', damageEffect: 'Radiant damage', source: 'PHB'},
-  Guidance: {school: 'Divination', range: 'Touch', duration: 'Concentration, 1 minute', concentration: true, damageEffect: '+1d4 ability check', source: 'PHB'},
-  Thaumaturgy: {school: 'Transmutation', range: '30 ft', duration: '1 minute', damageEffect: 'Minor divine wonder', source: 'PHB'},
-  'Cure Wounds': {school: 'Abjuration', range: 'Touch', duration: 'Instant', damageEffect: 'Heal 2d8 + mod', source: 'PHB'},
-  Bless: {school: 'Enchantment', range: '30 ft', duration: 'Concentration, 1 minute', concentration: true, damageEffect: '+1d4 attacks/saves to 3 creatures', source: 'PHB'},
-  'Guiding Bolt': {school: 'Evocation', range: '120 ft', duration: '1 round', attackSave: 'Ranged spell attack', damageEffect: 'Radiant damage; next attack advantage', source: 'PHB'},
-  'Shield of Faith': {school: 'Abjuration', castingTime: 'Bonus action', range: '60 ft', duration: 'Concentration, 10 minutes', concentration: true, damageEffect: '+2 AC', source: 'PHB'},
-  'Detect Magic': {school: 'Divination', range: 'Self', duration: 'Concentration, 10 minutes', concentration: true, ritual: true, damageEffect: 'Sense magic within 30 ft', source: 'PHB'},
-  Druidcraft: {school: 'Transmutation', range: '30 ft', duration: 'Instant', damageEffect: 'Minor nature effect', source: 'PHB'},
-  'Produce Flame': {school: 'Conjuration', range: 'Self', duration: '10 minutes', attackSave: 'Ranged spell attack', damageEffect: 'Fire damage / light', source: 'PHB'},
-  Entangle: {school: 'Conjuration', range: '90 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'STR save', damageEffect: 'Restrained in 20-ft square', source: 'PHB'},
-  Thunderwave: {school: 'Evocation', range: 'Self', duration: 'Instant', attackSave: 'CON save', damageEffect: 'Thunder damage + push', source: 'PHB'},
-  'Speak with Animals': {school: 'Divination', range: 'Self', duration: '10 minutes', ritual: true, damageEffect: 'Communicate with beasts', source: 'PHB'},
-  Command: {school: 'Enchantment', range: '60 ft', duration: '1 round', attackSave: 'WIS save', damageEffect: 'One-word command', source: 'PHB'},
-  'Searing Smite': {school: 'Evocation', castingTime: 'Bonus action', range: 'Self', duration: 'Concentration, 1 minute', concentration: true, damageEffect: 'Weapon hit adds fire; ongoing burn', source: 'PHB'},
-  'Compelled Duel': {school: 'Enchantment', castingTime: 'Bonus action', range: '30 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'WIS save', damageEffect: 'Target drawn to duel you', source: 'PHB'},
-  "Hunter's Mark": {school: 'Divination', castingTime: 'Bonus action', range: '90 ft', duration: 'Concentration, 1 hour', concentration: true, damageEffect: '+1d6 weapon damage; track target', source: 'PHB'},
-  "Hunter's Mark (always)": {school: 'Divination', castingTime: 'Bonus action', range: '90 ft', duration: 'Concentration, 1 hour', concentration: true, damageEffect: '+1d6 weapon damage; always prepared', source: 'PHB'},
-  'Ensnaring Strike': {school: 'Conjuration', castingTime: 'Bonus action', range: 'Self', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'STR save', damageEffect: 'Restrained by vines', source: 'PHB'},
-  'Hail of Thorns': {school: 'Conjuration', castingTime: 'Bonus action', range: 'Self', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'DEX save', damageEffect: 'Thorn burst after ranged hit', source: 'PHB'},
-  'Fog Cloud': {school: 'Conjuration', range: '120 ft', duration: 'Concentration, 1 hour', concentration: true, damageEffect: 'Heavily obscured fog sphere', source: 'PHB'},
-  'Fire Bolt': {school: 'Evocation', range: '120 ft', duration: 'Instant', attackSave: 'Ranged spell attack', damageEffect: 'Fire damage', source: 'PHB'},
-  'Mage Hand': {school: 'Conjuration', range: '30 ft', duration: '1 minute', damageEffect: 'Spectral hand manipulates objects', source: 'PHB'},
-  'Minor Illusion': {school: 'Illusion', range: '30 ft', duration: '1 minute', damageEffect: 'Sound or image illusion', source: 'PHB'},
-  Shield: {school: 'Abjuration', castingTime: 'Reaction', range: 'Self', duration: '1 round', damageEffect: '+5 AC; blocks Magic Missile', source: 'PHB'},
-  'Magic Missile': {school: 'Evocation', range: '120 ft', duration: 'Instant', damageEffect: 'Force darts; automatic hits', source: 'PHB'},
-  'Chromatic Orb': {school: 'Evocation', range: '90 ft', duration: 'Instant', attackSave: 'Ranged spell attack', damageEffect: 'Elemental damage', source: 'PHB'},
-  'Burning Hands': {school: 'Evocation', range: 'Self', duration: 'Instant', attackSave: 'DEX save', damageEffect: 'Fire cone', source: 'PHB'},
-  'Eldritch Blast': {school: 'Evocation', range: '120 ft', duration: 'Instant', attackSave: 'Ranged spell attack', damageEffect: 'Force beam', source: 'PHB'},
-  Hex: {school: 'Enchantment', castingTime: 'Bonus action', range: '90 ft', duration: 'Concentration, 1 hour', concentration: true, damageEffect: '+1d6 necrotic; ability check penalty', source: 'PHB'},
-  'Armor of Agathys': {school: 'Abjuration', range: 'Self', duration: '1 hour', damageEffect: 'Temp HP; cold retaliation', source: 'PHB'},
-  'Arms of Hadar': {school: 'Conjuration', range: 'Self', duration: 'Instant', attackSave: 'STR save', damageEffect: 'Necrotic burst; no reactions', source: 'PHB'},
-  'Witch Bolt': {school: 'Evocation', range: '30 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'Ranged spell attack', damageEffect: 'Lightning link; repeat damage', source: 'PHB'},
-  Sleep: {school: 'Enchantment', range: '60 ft', duration: '1 minute', damageEffect: 'Unconscious creatures by HP pool', source: 'PHB'},
-  'Feather Fall': {school: 'Transmutation', castingTime: 'Reaction', range: '60 ft', duration: '1 minute', damageEffect: 'Slow falling creatures', source: 'PHB'},
-  'Mage Armor': {school: 'Abjuration', range: 'Touch', duration: '8 hours', damageEffect: 'Base AC 13 + DEX', source: 'PHB'},
+  Prestidigitation: {school: 'Transmutation', range: '10 ft', duration: 'Up to 1 hour', damageEffect: 'Minor magical effect', description: 'Create a harmless magical effect: clean or soil an object, chill or warm material, make a small sensory effect, or mark an item briefly.'},
+  'Healing Word': {school: 'Abjuration', castingTime: 'Bonus action', range: '60 ft', duration: 'Instant', damageEffect: 'Heal 2d4 + mod', description: 'Speak a quick healing word to restore hit points to a creature you can see within range.'},
+  'Faerie Fire': {school: 'Evocation', range: '60 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'DEX save', damageEffect: 'Advantage vs outlined creatures', description: 'Outline creatures and objects in light. Affected creatures cannot benefit from invisibility, and attacks against them have advantage.'},
+  'Dissonant Whispers': {school: 'Enchantment', range: '60 ft', duration: 'Instant', attackSave: 'WIS save', damageEffect: 'Psychic damage + reaction move', description: 'Whisper a discordant melody that harms one creature. On a failed Wisdom save, it takes psychic damage and uses its reaction to move away.'},
+  'Charm Person': {school: 'Enchantment', range: '30 ft', duration: '1 hour', attackSave: 'WIS save', damageEffect: 'Charmed humanoid', description: 'Attempt to charm a humanoid. If it fails the save, it treats you as a friendly acquaintance until the spell ends or you harm it.'},
+  Heroism: {school: 'Enchantment', range: 'Touch', duration: 'Concentration, 1 minute', concentration: true, damageEffect: 'Temp HP each turn; immune frightened', description: 'Bolster a willing creature with courage. It cannot be frightened and gains temporary hit points at the start of each of its turns.'},
+  'Tasha’s Hideous Laughter': {school: 'Enchantment', range: '30 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'WIS save', damageEffect: 'Prone/incapacitated laughing', description: 'Force a creature into magical laughter. On a failed Wisdom save, it falls prone, is incapacitated, and cannot stand while laughing.'},
+  'Sacred Flame': {school: 'Evocation', range: '60 ft', duration: 'Instant', attackSave: 'DEX save', damageEffect: 'Radiant damage', description: 'Call down radiant flame on a creature you can see. The target must dodge with Dexterity or take radiant damage.'},
+  Guidance: {school: 'Divination', range: 'Touch', duration: 'Concentration, 1 minute', concentration: true, damageEffect: '+1d4 ability check', description: 'Touch a willing creature and guide its effort. Before the spell ends, it can add 1d4 to one ability check.'},
+  Thaumaturgy: {school: 'Transmutation', range: '30 ft', duration: '1 minute', damageEffect: 'Minor divine wonder', description: 'Create a small divine sign such as a booming voice, flickering flames, tremors, an open door, or a dramatic sensory effect.'},
+  'Cure Wounds': {school: 'Abjuration', range: 'Touch', duration: 'Instant', damageEffect: 'Heal 2d8 + mod', description: 'Touch a creature and restore hit points with healing magic.'},
+  Bless: {school: 'Enchantment', range: '30 ft', duration: 'Concentration, 1 minute', concentration: true, damageEffect: '+1d4 attacks/saves to 3 creatures', description: 'Bless up to three creatures. While the spell lasts, each can add 1d4 to attack rolls and saving throws.'},
+  'Guiding Bolt': {school: 'Evocation', range: '120 ft', duration: '1 round', attackSave: 'Ranged spell attack', damageEffect: 'Radiant damage; next attack advantage', description: 'Launch a flash of radiant energy. On a hit, the target takes radiant damage and the next attack against it has advantage.'},
+  'Shield of Faith': {school: 'Abjuration', castingTime: 'Bonus action', range: '60 ft', duration: 'Concentration, 10 minutes', concentration: true, damageEffect: '+2 AC', description: 'Wrap a creature in shimmering protection, giving it a +2 bonus to Armor Class while you concentrate.'},
+  'Detect Magic': {school: 'Divination', range: 'Self', duration: 'Concentration, 10 minutes', concentration: true, ritual: true, damageEffect: 'Sense magic within 30 ft', description: 'Sense magic nearby and, with focus, see a faint aura around magical creatures or objects and learn the school of magic.'},
+  Druidcraft: {school: 'Transmutation', range: '30 ft', duration: 'Instant', damageEffect: 'Minor nature effect', description: 'Create a small nature effect: predict weather, make a flower bloom, create a harmless sensory sign, or light/snuff a tiny flame.'},
+  'Produce Flame': {school: 'Conjuration', range: 'Self', duration: '10 minutes', attackSave: 'Ranged spell attack', damageEffect: 'Fire damage / light', description: 'Create flame in your hand for light. You can also hurl it at a creature or object to deal fire damage.'},
+  'Thorn Whip': {school: 'Transmutation', range: '30 ft', duration: 'Instant', attackSave: 'Melee spell attack', damageEffect: 'Piercing damage + pull 10 ft', description: 'Create a vine-like whip covered in thorns. On a hit, it deals piercing damage and can pull the target closer.'},
+  Entangle: {school: 'Conjuration', range: '90 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'STR save', damageEffect: 'Restrained in 20-ft square', description: 'Grasping plants fill an area. Creatures that fail a Strength save are restrained until they break free or the spell ends.'},
+  Thunderwave: {school: 'Evocation', range: 'Self', duration: 'Instant', attackSave: 'CON save', damageEffect: 'Thunder damage + push', description: 'Release a wave of thunderous force around you. Creatures in the area take thunder damage and may be pushed away.'},
+  'Speak with Animals': {school: 'Divination', range: 'Self', duration: '10 minutes', ritual: true, damageEffect: 'Communicate with beasts', description: 'Gain the ability to understand and verbally communicate with beasts for the duration.'},
+  Command: {school: 'Enchantment', range: '60 ft', duration: '1 round', attackSave: 'WIS save', damageEffect: 'One-word command', description: 'Speak a one-word command to a creature. If it fails the Wisdom save, it obeys on its next turn if the command is not directly harmful.'},
+  'Searing Smite': {school: 'Evocation', castingTime: 'Bonus action', range: 'Self', duration: 'Concentration, 1 minute', concentration: true, damageEffect: 'Weapon hit adds fire; ongoing burn', description: 'Charge your next weapon hit with searing fire. The target takes extra fire damage and may keep burning until it saves.'},
+  'Compelled Duel': {school: 'Enchantment', castingTime: 'Bonus action', range: '30 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'WIS save', damageEffect: 'Target drawn to duel you', description: 'Challenge one creature to focus on you. On a failed save, it has trouble attacking others and moving away from you.'},
+  "Hunter's Mark": {school: 'Divination', castingTime: 'Bonus action', range: '90 ft', duration: 'Concentration, 1 hour', concentration: true, damageEffect: '+1d6 weapon damage; track target', description: 'Mark a creature as your quarry. Your weapon hits deal extra damage, and you have an easier time tracking the target.'},
+  "Hunter's Mark (always)": {school: 'Divination', castingTime: 'Bonus action', range: '90 ft', duration: 'Concentration, 1 hour', concentration: true, damageEffect: '+1d6 weapon damage; always prepared', description: 'Mark a creature as your quarry. This ranger version is always prepared and can be cast with free uses from Favored Enemy.'},
+  'Ensnaring Strike': {school: 'Conjuration', castingTime: 'Bonus action', range: 'Self', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'STR save', damageEffect: 'Restrained by vines', description: 'Empower your next weapon hit with grasping vines. The target can be restrained and take ongoing damage until it escapes.'},
+  'Hail of Thorns': {school: 'Conjuration', castingTime: 'Bonus action', range: 'Self', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'DEX save', damageEffect: 'Thorn burst after ranged hit', description: 'Your next ranged weapon hit bursts with thorns, damaging the target and nearby creatures.'},
+  'Fog Cloud': {school: 'Conjuration', range: '120 ft', duration: 'Concentration, 1 hour', concentration: true, damageEffect: 'Heavily obscured fog sphere', description: 'Create a sphere of dense fog that heavily obscures the area, blocking sight through it.'},
+  'Fire Bolt': {school: 'Evocation', range: '120 ft', duration: 'Instant', attackSave: 'Ranged spell attack', damageEffect: 'Fire damage', description: 'Hurl a mote of fire at a creature or object. On a hit, it deals fire damage and can ignite unattended flammable objects.'},
+  'Ray of Frost': {school: 'Evocation', range: '60 ft', duration: 'Instant', attackSave: 'Ranged spell attack', damageEffect: 'Cold damage + -10 ft speed', description: 'Fire a freezing ray at a creature. On a hit, it takes cold damage and its speed is reduced until your next turn.'},
+  'Mage Hand': {school: 'Conjuration', range: '30 ft', duration: '1 minute', damageEffect: 'Spectral hand manipulates objects', description: 'Create a floating spectral hand that can manipulate objects, open containers, or carry light items at a distance.'},
+  'Minor Illusion': {school: 'Illusion', range: '30 ft', duration: '1 minute', damageEffect: 'Sound or image illusion', description: 'Create a sound or static image that can distract, mislead, or provide cover for a trick.'},
+  Shield: {school: 'Abjuration', castingTime: 'Reaction', range: 'Self', duration: '1 round', damageEffect: '+5 AC; blocks Magic Missile', description: 'Use your reaction when hit to raise your AC by 5 until your next turn and negate Magic Missile.'},
+  'Magic Missile': {school: 'Evocation', range: '120 ft', duration: 'Instant', damageEffect: 'Force darts; automatic hits', description: 'Create three darts of force that automatically hit creatures you can see. Split the darts among targets or focus them on one.'},
+  'Chromatic Orb': {school: 'Evocation', range: '90 ft', duration: 'Instant', attackSave: 'Ranged spell attack', damageEffect: 'Elemental damage', description: 'Hurl an orb of acid, cold, fire, lightning, poison, or thunder. On a hit, it deals the chosen damage type.'},
+  'Burning Hands': {school: 'Evocation', range: 'Self', duration: 'Instant', attackSave: 'DEX save', damageEffect: 'Fire cone', description: 'A cone of flame shoots from your hands. Creatures in the area take fire damage, or half on a successful Dexterity save.'},
+  'Eldritch Blast': {school: 'Evocation', range: '120 ft', duration: 'Instant', attackSave: 'Ranged spell attack', damageEffect: 'Force beam', description: 'Fire a beam of crackling force at a target. On a hit, it deals force damage and can be improved by invocations.'},
+  Hex: {school: 'Enchantment', castingTime: 'Bonus action', range: '90 ft', duration: 'Concentration, 1 hour', concentration: true, damageEffect: '+1d6 necrotic; ability check penalty', description: 'Curse a creature. Your hits deal extra necrotic damage, and the target has disadvantage on checks with one ability you choose.'},
+  'Armor of Agathys': {school: 'Abjuration', range: 'Self', duration: '1 hour', damageEffect: 'Temp HP; cold retaliation', description: 'Cover yourself in protective frost. You gain temporary hit points, and creatures that hit you in melee take cold damage.'},
+  'Arms of Hadar': {school: 'Conjuration', range: 'Self', duration: 'Instant', attackSave: 'STR save', damageEffect: 'Necrotic burst; no reactions', description: 'Summon dark tendrils around you. Nearby creatures take necrotic damage and may be unable to take reactions.'},
+  'Witch Bolt': {school: 'Evocation', range: '30 ft', duration: 'Concentration, 1 minute', concentration: true, attackSave: 'Ranged spell attack', damageEffect: 'Lightning link; repeat damage', description: 'Strike a creature with lightning and maintain an arc of energy. While you concentrate, you can deal more lightning damage on later turns.'},
+  Sleep: {school: 'Enchantment', range: '60 ft', duration: '1 minute', damageEffect: 'Unconscious creatures by HP pool', description: 'Send creatures into magical sleep, starting with the lowest current hit points in the area until the spell has affected enough hit points.'},
+  'Feather Fall': {school: 'Transmutation', castingTime: 'Reaction', range: '60 ft', duration: '1 minute', damageEffect: 'Slow falling creatures', description: 'Use your reaction to slow falling creatures, preventing fall damage while the spell lasts.'},
+  'Mage Armor': {school: 'Abjuration', range: 'Touch', duration: '8 hours', damageEffect: 'Base AC 13 + DEX', description: 'Protect an unarmored creature with magical force. Its base Armor Class becomes 13 plus Dexterity modifier.'},
 };
 
 interface SheetData {
@@ -282,24 +294,26 @@ function renderSheet(data: SheetData): Block[] {
     const spH = 290;
     const spellGroups: SpellLevelGroup[] = [];
     const toEntries = (names: string[]) =>
-      names.map((name) => ({
-        id: uid('sp'),
-        prepared: true,
-        name,
-        castingTime: SPELL_DETAILS[name]?.castingTime ?? '1 action',
-        range: SPELL_DETAILS[name]?.range,
-        components: {v: true, s: true, m: Boolean(SPELL_DETAILS[name]?.material)},
-        duration: SPELL_DETAILS[name]?.duration,
-        concentration: SPELL_DETAILS[name]?.concentration ?? false,
-        ritual: SPELL_DETAILS[name]?.ritual ?? false,
-        school: SPELL_DETAILS[name]?.school,
-        material: SPELL_DETAILS[name]?.material,
-        attackSave: SPELL_DETAILS[name]?.attackSave,
-        damageEffect: SPELL_DETAILS[name]?.damageEffect,
-        source: SPELL_DETAILS[name]?.source,
-        description: SPELL_DETAILS[name]?.description,
-        notes: SPELL_DETAILS[name]?.notes,
-      }));
+      names.map((name) => {
+        const details = SPELL_DETAILS[name];
+        const description = details?.description ?? details?.notes ?? details?.damageEffect;
+        return {
+          id: uid('sp'),
+          prepared: true,
+          name,
+          castingTime: details?.castingTime ?? '1 action',
+          range: details?.range,
+          components: {v: true, s: true, m: Boolean(details?.material)},
+          duration: details?.duration,
+          concentration: details?.concentration ?? false,
+          ritual: details?.ritual ?? false,
+          school: details?.school,
+          material: details?.material,
+          attackSave: details?.attackSave,
+          damageEffect: details?.damageEffect,
+          description,
+        };
+      });
     if (data.spell.cantrips.length) {
       spellGroups.push({id: uid('sg'), level: 0, slotsTotal: 0, slotsExpended: 0, spells: toEntries(data.spell.cantrips)});
     }
@@ -320,7 +334,7 @@ function renderSheet(data: SheetData): Block[] {
           ability: data.spell.ability,
           saveDc: data.spell.dc,
           attackBonus: data.spell.attack,
-          columns: ['school', 'castingTime', 'range', 'components', 'duration', 'attackSave', 'damageEffect', 'source'],
+          columns: TEMPLATE_SPELL_COLUMNS,
           groups: spellGroups,
         },
         {fontSize: 14, showBorder: true},
@@ -436,8 +450,8 @@ function resolveClass(spec: ClassSpec): SheetData {
     vitals2: [
       {label: 'Proficiency', value: sign(PROFICIENCY), hint: 'bonus'},
       {label: 'Hit Dice', value: `1${spec.hitDie}`, hint: 'per level'},
-      {label: 'Passive Perc.', value: `${passive}`, hint: '10 + WIS'},
-      {label: 'Heroic Insp.', value: '—', hint: 'reroll a d20'},
+      {label: 'Passive Perception', value: `${passive}`, hint: '10 + WIS'},
+      {label: 'Heroic Inspiration', value: '—', hint: 'reroll a d20'},
     ],
     resourceHeader: spec.resourceHeader,
     resources: spec.resources,
@@ -477,7 +491,7 @@ const CLASS_SPECS: ClassSpec[] = [
       {label: 'Rage', value: '2', hint: '◇◇ · Bonus Action'},
       {label: 'Rage Damage', value: '+2', hint: 'on STR weapon hits'},
       {label: 'Weapon Mastery', value: '2', hint: 'weapon properties'},
-      {label: 'Reckless Atk', value: 'Adv', hint: 'L2 · melee STR'},
+      {label: 'Reckless Attack', value: 'Adv', hint: 'L2 · melee STR'},
     ],
     features: [
       'Rage (L1)',
@@ -526,10 +540,10 @@ const CLASS_SPECS: ClassSpec[] = [
     defense: {kind: 'armor', label: 'Leather + DEX', base: 11, addDex: true},
     resourceHeader: 'Song & Inspiration',
     resources: [
-      {label: 'Bardic Insp.', value: 'd6', hint: 'CHA uses / long rest'},
+      {label: 'Bardic Inspiration', value: 'd6', hint: 'CHA uses / long rest'},
       {label: 'Expertise', value: '2', hint: 'L2 · double prof'},
       {label: 'Jack of Trades', value: '½', hint: 'L2 · other checks'},
-      {label: 'Font of Insp.', value: 'L5', hint: 'insp. on short rest'},
+      {label: 'Font of Inspiration', value: 'L5', hint: 'insp. on short rest'},
     ],
     features: [
       'Spellcasting (L1)',
@@ -552,7 +566,7 @@ const CLASS_SPECS: ClassSpec[] = [
     spell: {
       ability: 'cha',
       abilityLabel: 'CHA',
-      countLabel: 'Spells Prep.',
+      countLabel: 'Prepared Spells',
       count: '4',
       slots: FULL_SLOTS,
       cantrips: ['Vicious Mockery', 'Prestidigitation'],
@@ -588,10 +602,10 @@ const CLASS_SPECS: ClassSpec[] = [
     defense: {kind: 'armor', label: 'Chain Mail + shield', base: 16, addDex: false, shield: true},
     resourceHeader: 'Divine Power',
     resources: [
-      {label: 'Channel Div.', value: '2', hint: 'L2 · ◇◇ per rest'},
+      {label: 'Channel Divinity', value: '2', hint: 'L2 · ◇◇ per rest'},
       {label: 'Divine Spark', value: '1d8', hint: 'L2 · heal or harm'},
       {label: 'Turn Undead', value: 'WIS', hint: 'L2 · save vs Spell DC'},
-      {label: 'Prepared', value: '4', hint: 'spells · +3 cantrips'},
+      {label: 'Prepared Spells', value: '4', hint: '+3 cantrips'},
     ],
     features: [
       'Spellcasting (L1)',
@@ -614,7 +628,7 @@ const CLASS_SPECS: ClassSpec[] = [
     spell: {
       ability: 'wis',
       abilityLabel: 'WIS',
-      countLabel: 'Spells Prep.',
+      countLabel: 'Prepared Spells',
       count: '4',
       slots: FULL_SLOTS,
       cantrips: ['Sacred Flame', 'Guidance', 'Thaumaturgy'],
@@ -652,7 +666,7 @@ const CLASS_SPECS: ClassSpec[] = [
     resources: [
       {label: 'Wild Shape', value: '2', hint: 'L2 · ◇◇ per rest'},
       {label: 'Wild Companion', value: 'L2', hint: 'familiar via WS'},
-      {label: 'Prepared', value: '4', hint: 'spells known'},
+      {label: 'Prepared Spells', value: '4', hint: 'available'},
       {label: 'Cantrips', value: '2', hint: 'known'},
     ],
     features: [
@@ -676,10 +690,10 @@ const CLASS_SPECS: ClassSpec[] = [
     spell: {
       ability: 'wis',
       abilityLabel: 'WIS',
-      countLabel: 'Spells Prep.',
+      countLabel: 'Prepared Spells',
       count: '4',
       slots: FULL_SLOTS,
-      cantrips: ['Druidcraft', 'Produce Flame'],
+      cantrips: ['Produce Flame', 'Thorn Whip'],
       spellsTitle: 'Prepared Spells',
       spells: ['Cure Wounds', 'Entangle', 'Faerie Fire', 'Thunderwave', 'Healing Word', 'Speak with Animals'],
     },
@@ -761,7 +775,7 @@ const CLASS_SPECS: ClassSpec[] = [
       {label: 'Martial Arts', value: '1d6', hint: 'DEX · Bonus unarmed'},
       {label: 'Focus Points', value: '2', hint: 'L2 · = Monk level'},
       {label: 'Unarmored Move', value: '+10', hint: 'L2 · feet'},
-      {label: 'Deflect Atk', value: '1d10', hint: 'L3 · reduce damage'},
+      {label: 'Deflect Attack', value: '1d10', hint: 'L3 · reduce damage'},
     ],
     features: [
       'Martial Arts (L1)',
@@ -813,7 +827,7 @@ const CLASS_SPECS: ClassSpec[] = [
       {label: 'Lay on Hands', value: '5', hint: 'HP pool · 5 × level'},
       {label: 'Weapon Mastery', value: '2', hint: 'weapon properties'},
       {label: 'Divine Smite', value: '2d8', hint: 'L2 spell · +1d8 / slot'},
-      {label: 'Channel Div.', value: '2', hint: 'L3 · per rest'},
+      {label: 'Channel Divinity', value: '2', hint: 'L3 · per rest'},
     ],
     features: [
       'Lay on Hands (L1)',
@@ -837,7 +851,7 @@ const CLASS_SPECS: ClassSpec[] = [
     spell: {
       ability: 'cha',
       abilityLabel: 'CHA',
-      countLabel: 'Spells Prep.',
+      countLabel: 'Prepared Spells',
       count: '2',
       slots: HALF_SLOTS,
       cantrips: [],
@@ -899,7 +913,7 @@ const CLASS_SPECS: ClassSpec[] = [
     spell: {
       ability: 'wis',
       abilityLabel: 'WIS',
-      countLabel: 'Spells Prep.',
+      countLabel: 'Prepared Spells',
       count: '2',
       slots: HALF_SLOTS,
       cantrips: [],
@@ -1013,7 +1027,7 @@ const CLASS_SPECS: ClassSpec[] = [
     spell: {
       ability: 'cha',
       abilityLabel: 'CHA',
-      countLabel: 'Spells Prep.',
+      countLabel: 'Prepared Spells',
       count: '2',
       slots: FULL_SLOTS,
       cantrips: ['Fire Bolt', 'Prestidigitation', 'Mage Hand', 'Minor Illusion'],
@@ -1074,7 +1088,7 @@ const CLASS_SPECS: ClassSpec[] = [
     spell: {
       ability: 'cha',
       abilityLabel: 'CHA',
-      countLabel: 'Spells Prep.',
+      countLabel: 'Prepared Spells',
       count: '2',
       slots: PACT_SLOTS,
       cantrips: ['Eldritch Blast', 'Prestidigitation'],
@@ -1136,10 +1150,10 @@ const CLASS_SPECS: ClassSpec[] = [
     spell: {
       ability: 'int',
       abilityLabel: 'INT',
-      countLabel: 'Spells Prep.',
+      countLabel: 'Prepared Spells',
       count: '4',
       slots: FULL_SLOTS,
-      cantrips: ['Fire Bolt', 'Mage Hand', 'Prestidigitation'],
+      cantrips: ['Fire Bolt', 'Ray of Frost', 'Mage Hand'],
       spellsTitle: 'Spellbook (6)',
       spells: ['Shield', 'Magic Missile', 'Detect Magic', 'Sleep', 'Feather Fall', 'Mage Armor'],
     },
@@ -1179,8 +1193,8 @@ function generalData(): SheetData {
     vitals2: [
       {label: 'Proficiency', value: '+2', hint: 'bonus'},
       {label: 'Hit Dice', value: '1', hint: 'per level'},
-      {label: 'Passive Perc.', value: `${10 + mod.wis}`, hint: '10 + WIS'},
-      {label: 'Heroic Insp.', value: '—', hint: 'reroll a d20'},
+      {label: 'Passive Perception', value: `${10 + mod.wis}`, hint: '10 + WIS'},
+      {label: 'Heroic Inspiration', value: '—', hint: 'reroll a d20'},
     ],
     featuresTitle: 'Class & Species Features',
     features: [

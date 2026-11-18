@@ -72,3 +72,74 @@
 .no-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
+.print-root {
+  display: flex;
+  position: fixed;
+  left: -100000px;
+  top: 0;
+  pointer-events: none;
+}
+
+@media print {
+  @page {
+    margin: 0.35in;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto;
+    overflow: visible;
+    background: white;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-root,
+  .print-root * {
+    visibility: visible;
+  }
+
+  .print-root {
+    display: flex;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    justify-content: center;
+    background: white;
+  }
+
+  .print-page {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(176, 141, 87, 0.45);
+    border-radius: 18px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print-page .no-scrollbar {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 849px) {
+  .editor-toolbar { height: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; padding: .5rem; }
+  .editor-toolbar > div:last-child { overflow-x: auto; white-space: nowrap; padding-bottom: .25rem; }
+  .editor-toolbar button, .editor-toolbar span { flex-shrink: 0; }
+  .editor-body > aside { position: absolute; top: 0; bottom: 0; z-index: 15; max-width: calc(100% - 48px); box-shadow: 0 3px 16px #0002; }
+  .editor-body > aside:first-child { left: 0; }
+  .editor-body > aside:last-child { right: 0; }
+}
+
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes screen-enter {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .screen-enter, .editor-body { animation: screen-enter 180ms ease-out; }
+}

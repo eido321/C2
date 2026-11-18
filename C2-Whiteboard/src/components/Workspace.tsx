@@ -2,12 +2,14 @@ import {useEffect, useRef, useState} from 'react';
 import {ChevronDown, ChevronRight, Layers, PanelLeftClose, PanelLeftOpen, PanelRightOpen} from 'lucide-react';
 import type {BlockType} from '@/types';
 import {createBlock} from '@/lib/blockDefaults';
+import {exportWhiteboardPdf} from '@/lib/io';
 import {LEFT_PANEL, RIGHT_PANEL, usePanelWidth} from '@/lib/panelWidth';
 import {useWhiteboard} from '@/store/WhiteboardContext';
 import {Canvas} from './canvas/Canvas';
 import {BlockPalette} from './panels/BlockPalette';
 import {LayersPanel} from './panels/LayersPanel';
 import {PropertiesPanel} from './panels/PropertiesPanel';
+import {PrintableBoard} from './print/PrintableBoard';
 import {ResizeHandle} from './panels/ResizeHandle';
 import {TopBar} from './panels/TopBar';
 
@@ -16,16 +18,28 @@ function isTypingTarget(el: EventTarget | null): boolean {
   return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable;
 }
 
-export function Workspace({onOpenStart}: {onOpenStart: () => void}) {
+export function Workspace({onOpenStart, menuOpen}: {onOpenStart: (account: boolean) => void; menuOpen: boolean}) {
   const {state, dispatch} = useWhiteboard();
   const containerRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef<HTMLElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [snap, setSnap] = useState(false);
-  const [leftOpen, setLeftOpen] = useState(true);
+  const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= 850);
   const [layersOpen, setLayersOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 850);
   const leftPanel = usePanelWidth(LEFT_PANEL, 'left');
   const rightPanel = usePanelWidth(RIGHT_PANEL, 'right');
+  const {selectedIds, board} = state;
+
+  const exportSheet = async () => {
+    dispatch({type: 'SELECT', id: null});
+    setEditingId(null);
+    try {
+      await exportWhiteboardPdf(board);
+    } catch (err) {
+      window.alert(`Could not export PDF: ${err instanceof Error ? err.message : 'unknown error'}`);
+    }
+  };
 
   const addBlock = (type: BlockType) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -38,11 +52,14 @@ export function Workspace({onOpenStart}: {onOpenStart: () => void}) {
     dispatch({type: 'ADD_BLOCK', block});
   };
 
-  const {selectedIds, board} = state;
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (menuOpen) return;
       if (isTypingTarget(e.target) || editingId) {
-        if (e.key === 'Escape') (e.target as HTMLElement)?.blur?.();
+        if (e.key === 'Escape') {
+          (e.target as HTMLElement)?.blur?.();
+          setEditingId(null);
+        }
         return;
       }
       if (e.key === 'Escape') {
@@ -75,12 +92,12 @@ export function Workspace({onOpenStart}: {onOpenStart: () => void}) {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [dispatch, editingId, selectedIds, board.groups]);
+  }, [dispatch, editingId, selectedIds, board.groups, menuOpen]);
 
   return (
-    <div className="flex h-full w-full flex-col">
-      <TopBar onOpenStart={onOpenStart} />
-      <div className="flex min-h-0 flex-1">
+    <div inert={menuOpen} className={menuOpen ? "hidden" : "flex h-full w-full flex-col"}>
+      <TopBar onOpenStart={onOpenStart} onExportSheet={exportSheet} />
+      <div className="editor-body relative flex min-h-0 flex-1">
         {leftOpen ? (
           <aside
             className="relative flex shrink-0 flex-col border-r border-slate-200 bg-white"
@@ -117,7 +134,7 @@ export function Workspace({onOpenStart}: {onOpenStart: () => void}) {
           </aside>
         ) : (
           <div className="flex w-10 shrink-0 flex-col items-center border-r border-slate-200 bg-white py-2">
-            <button className="icon-btn" title="Show layers & blocks" onClick={() => setLeftOpen(true)}>
+            <button className="icon-btn" title="Show layers & blocks" onClick={() => {setLeftOpen(true); if (window.innerWidth < 850) setRightOpen(false);}}>
               <PanelLeftOpen size={18} />
             </button>
             <Layers size={16} className="mt-3 text-slate-300" />
@@ -149,12 +166,16 @@ export function Workspace({onOpenStart}: {onOpenStart: () => void}) {
           />
         ) : (
           <div className="flex w-10 shrink-0 flex-col items-center border-l border-slate-200 bg-white py-2">
-            <button className="icon-btn" title="Show properties" onClick={() => setRightOpen(true)}>
+            <button className="icon-btn" title="Show properties" onClick={() => {setRightOpen(true); if (window.innerWidth < 850) setLeftOpen(false);}}>
               <PanelRightOpen size={18} />
             </button>
           </div>
         )}
       </div>
+      <PrintableBoard ref={printRef} board={board} />
     </div>
   );
 }
+
+
+

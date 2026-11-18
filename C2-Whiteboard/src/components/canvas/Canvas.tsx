@@ -67,14 +67,15 @@ export function Canvas({containerRef, editingId, setEditingId, snap, setSnap}: P
 
   const fitView = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect || board.blocks.length === 0) {
+    const blocks = board.blocks.filter(block => !block.hidden);
+    if (!rect || blocks.length === 0) {
       resetView();
       return;
     }
-    const minX = Math.min(...board.blocks.map((b) => b.x));
-    const minY = Math.min(...board.blocks.map((b) => b.y));
-    const maxX = Math.max(...board.blocks.map((b) => b.x + b.width));
-    const maxY = Math.max(...board.blocks.map((b) => b.y + b.height));
+    const minX = Math.min(...blocks.map((b) => b.x));
+    const minY = Math.min(...blocks.map((b) => b.y));
+    const maxX = Math.max(...blocks.map((b) => b.x + b.width));
+    const maxY = Math.max(...blocks.map((b) => b.y + b.height));
     const pad = 80;
     const w = maxX - minX + pad * 2;
     const h = maxY - minY + pad * 2;
@@ -107,7 +108,7 @@ export function Canvas({containerRef, editingId, setEditingId, snap, setSnap}: P
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') spaceDown.current = true;
+      if (e.code === 'Space' && !(e.target as Element)?.closest?.('input, textarea, select, [contenteditable=true]')) spaceDown.current = true;
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') spaceDown.current = false;
@@ -149,16 +150,25 @@ export function Canvas({containerRef, editingId, setEditingId, snap, setSnap}: P
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full overflow-hidden bg-slate-100"
+      className="relative h-full w-full touch-none overflow-hidden bg-slate-100"
       style={{
         backgroundImage: 'radial-gradient(circle, rgba(100,116,139,0.28) 1px, transparent 1px)',
         backgroundSize: `${GRID * zoom}px ${GRID * zoom}px`,
         backgroundPosition: `${pan.x}px ${pan.y}px`,
         cursor: panning.current ? 'grabbing' : 'default',
       }}
+      onPointerDownCapture={event => {
+        if ((spaceDown.current || event.button === 1) &&
+            !(event.target as Element).closest('[data-canvas-controls], input, textarea, select')) {
+          event.preventDefault();
+          event.stopPropagation();
+          onPointerDown(event);
+        }
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
       <div
         className="absolute left-0 top-0 origin-top-left"
@@ -224,7 +234,7 @@ export function Canvas({containerRef, editingId, setEditingId, snap, setSnap}: P
         </div>
       ) : null}
 
-      <div className="absolute bottom-4 left-4 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 shadow-lg backdrop-blur">
+      <div data-canvas-controls onPointerDown={event => event.stopPropagation()} className="absolute bottom-4 left-4 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 shadow-lg backdrop-blur">
         <button className="icon-btn" onClick={() => zoomFromCenter(1 / 1.1)} title="Zoom out">
           <Minus size={16} />
         </button>
@@ -256,3 +266,5 @@ export function Canvas({containerRef, editingId, setEditingId, snap, setSnap}: P
     </div>
   );
 }
+
+

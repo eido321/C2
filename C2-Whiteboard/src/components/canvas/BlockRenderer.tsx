@@ -65,7 +65,8 @@ export function BlockRenderer({
   const locked = block.locked ?? false;
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (editing || locked) return;
+    if (locked || e.button !== 0) return;
+    if (editing) { e.stopPropagation(); return; }
     e.stopPropagation();
     onSelect(block.id);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -170,6 +171,7 @@ export function BlockRenderer({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endInteraction}
+      onPointerCancel={endInteraction}
       onDoubleClick={(e) => {
         if (locked) return;
         e.stopPropagation();
@@ -208,6 +210,7 @@ export function BlockRenderer({
               onPointerDown={startResize(h.dir)}
               onPointerMove={onPointerMove}
               onPointerUp={endInteraction}
+      onPointerCancel={endInteraction}
               className={cn('absolute z-10 h-3 w-3 rounded-full border-2 border-accent bg-white shadow', h.className)}
               style={{cursor: h.cursor}}
             />
@@ -216,3 +219,4 @@ export function BlockRenderer({
     </div>
   );
 }
+

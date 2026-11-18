@@ -132,7 +132,7 @@ export function createBlock(type: BlockType, x: number, y: number): Block {
         width: 360,
         height: 96,
         style: {fontSize: 34, align: 'left'},
-        content: {text: 'Character Name', subtitle: 'Level 1 · Race · Class'},
+        content: {text: 'Character Name', subtitle: 'Level 1 · Species · Class'},
       };
     case 'abilityScores':
       return {
@@ -195,19 +195,17 @@ export function createBlock(type: BlockType, x: number, y: number): Block {
           ability: 'INT',
           saveDc: '13',
           attackBonus: '+5',
-          columns: ['school', 'castingTime', 'range', 'components', 'duration', 'attackSave', 'damageEffect', 'source'],
+          columns: ['castingTime', 'range', 'components', 'duration', 'attackSave', 'damageEffect', 'concentration'],
           groups: [
             makeSpellGroup(0, 0, [
               {
                 name: 'Fire Bolt',
-                expanded: true,
                 school: 'Evocation',
                 castingTime: '1 action',
                 range: '120 ft',
                 duration: 'Instant',
                 attackSave: 'Ranged spell attack',
                 damageEffect: '1d10 fire',
-                source: 'PHB',
                 description: 'Hurl a mote of fire at a creature or object.',
               },
               {
@@ -218,7 +216,7 @@ export function createBlock(type: BlockType, x: number, y: number): Block {
                 duration: '1 minute',
                 components: {v: true, s: true, m: false},
                 damageEffect: 'Spectral hand',
-                source: 'PHB',
+                description: 'Create a spectral hand that can manipulate objects at a distance.',
               },
             ]),
             makeSpellGroup(1, 2, [
@@ -229,7 +227,6 @@ export function createBlock(type: BlockType, x: number, y: number): Block {
                 range: '120 ft',
                 duration: 'Instant',
                 damageEffect: '3 darts · 1d4+1 force each',
-                source: 'PHB',
                 description: 'Darts automatically hit creatures you can see.',
               },
               {
@@ -240,7 +237,7 @@ export function createBlock(type: BlockType, x: number, y: number): Block {
                 duration: '1 round',
                 components: {v: true, s: true, m: false},
                 damageEffect: '+5 AC; no Magic Missile damage',
-                source: 'PHB',
+                description: 'Use your reaction to raise your AC and block Magic Missile.',
               },
             ]),
           ],

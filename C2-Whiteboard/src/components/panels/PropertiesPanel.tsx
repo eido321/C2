@@ -842,7 +842,7 @@ function ContentEditor({block, dispatch}: {block: Block; dispatch: React.Dispatc
         <label>
           <span className="field-label">Text</span>
           <textarea
-            value={block.content.text}
+            aria-label="Text" value={block.content.text}
             onChange={(e) => setContent({text: e.target.value})}
             rows={5}
             className="field-input resize-none"
@@ -1120,6 +1120,7 @@ export function PropertiesPanel({
                 {ALIGNS.map(({value, icon: Icon}) => (
                   <button
                     key={value}
+                    aria-label={`Align ${value}`}
                     onClick={() => setStyle({align: value})}
                     className={cn(
                       'flex flex-1 items-center justify-center rounded-lg border py-2 transition-colors',
@@ -1185,3 +1186,5 @@ export function PropertiesPanel({
     </aside>
   );
 }
+
+
