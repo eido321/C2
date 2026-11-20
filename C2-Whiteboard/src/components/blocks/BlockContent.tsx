@@ -1,4 +1,6 @@
 import type {Block, BlockContentMap} from '@/types';
+import {SpellSlotsBlock} from './SpellSlotsBlock';
+import {AbilityScoreBlock} from './AbilityScoreBlock';
 import {AbilityScoresBlock} from './AbilityScoresBlock';
 import {DividerBlock} from './DividerBlock';
 import {HeadingBlock} from './HeadingBlock';
@@ -14,12 +16,22 @@ interface Props {
   update: (content: Partial<BlockContentMap[Block['type']]>) => void;
 }
 
-export function BlockContent({block, editing, update}: Props) {
+export function BlockContent(props: Props) {
+  const style = props.block.style;
+  return <div className={style?.color ? 'contents custom-font-color' : 'contents'}
+    style={{'--block-color':style?.color,'--block-font':style?.fontSize ? style.fontSize+'px' : undefined} as React.CSSProperties}>
+    <Content {...props}/>
+  </div>;
+}
+
+function Content({block, editing, update}: Props) {
   switch (block.type) {
     case 'text':
       return <TextBlock block={block} editing={editing} update={update} />;
     case 'heading':
       return <HeadingBlock block={block} editing={editing} update={update} />;
+    case 'spellSlots': return <SpellSlotsBlock block={block} editing={editing} update={update}/>;
+    case 'abilityScore': return <AbilityScoreBlock block={block} editing={editing} update={update}/>;
     case 'abilityScores':
       return <AbilityScoresBlock block={block} editing={editing} update={update} />;
     case 'statBlock':
@@ -34,3 +46,8 @@ export function BlockContent({block, editing, update}: Props) {
       return <SpellListBlock block={block} editing={editing} update={update} />;
   }
 }
+
+
+
+
+

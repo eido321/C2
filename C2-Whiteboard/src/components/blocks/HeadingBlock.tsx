@@ -19,7 +19,7 @@ export function HeadingBlock({block, editing, update}: BlockViewProps<'heading'>
           onChange={(e) => update({subtitle: e.target.value})}
           placeholder="Subtitle"
           className="bg-transparent font-serif italic text-slate-500 outline-none"
-          style={{fontSize: 15, textAlign: align}}
+          style={{fontSize: (style?.fontSize ?? 34) * 15 / 34, textAlign: align}}
         />
       </div>
     );
@@ -34,10 +34,11 @@ export function HeadingBlock({block, editing, update}: BlockViewProps<'heading'>
         {content.text || 'Heading'}
       </div>
       {content.subtitle ? (
-        <div className="font-serif italic text-slate-500" style={{fontSize: 15}}>
+        <div className="font-serif italic text-slate-500" style={{fontSize: (style?.fontSize ?? 34) * 15 / 34}}>
           {content.subtitle}
         </div>
       ) : null}
     </div>
   );
 }
+

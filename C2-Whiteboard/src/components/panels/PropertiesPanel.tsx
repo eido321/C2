@@ -1,3 +1,5 @@
+import {slotCapacity,setSlotTotal} from '@/lib/slotRows';
+import {castingFields} from '@/lib/castingFields';
 import {useRef, useState} from 'react';
 import {
   AlignCenter,
@@ -666,7 +668,7 @@ function ListEditor({content, set}: {content: ListContent; set: (patch: Partial<
     setItems(items.map((item, i) => (i === index ? withListItemText(item, text) : item)));
   const patchItemChecked = (index: number, checked: boolean) =>
     setItems(items.map((item, i) => (i === index ? withListItemChecked(item, checked) : item)));
-  const addItem = () => setItems([...items, makeListItem('New item', content.checklist)]);
+  const addItem = () => setItems([...items, makeListItem('', content.checklist)]);
   const removeItem = (index: number) =>
     setItems(items.length === 1 ? [makeListItem('', content.checklist)] : items.filter((_, i) => i !== index));
   const moveItem = (index: number, direction: -1 | 1) => {
@@ -866,6 +868,11 @@ function ContentEditor({block, dispatch}: {block: Block; dispatch: React.Dispatc
           </label>
         </>
       );
+    case 'spellSlots': return <div className="grid grid-cols-3 gap-2">{block.content.rows.map((r,i)=><label key={i}>
+      <span className="field-label">Level {i+1} total</span><input className="field-input" type="number" min={0} max={slotCapacity[i]} value={r.total||''}
+        onChange={e=>setContent({rows:block.content.rows.map((row,k)=>k===i?setSlotTotal(row,i,Number(e.target.value)):row)})}/>
+    </label>)}</div>;
+    case 'abilityScore': return <>{castingFields.map(([key,label])=><label key={key}><span className='field-label'>{label}</span><input className='field-input' value={block.content[key]} onChange={e=>setContent({[key]:e.target.value})}/></label>)}</>;
     case 'abilityScores':
       return (
         <div className="grid grid-cols-3 gap-2">
@@ -1051,8 +1058,8 @@ export function PropertiesPanel({
   const patchBlock = (patch: Partial<Block>) =>
     dispatch({type: 'UPDATE_BLOCK', id: block.id, patch: patch as never});
 
-  const hasFontSize =
-    block.type === 'text' || block.type === 'heading' || block.type === 'list' || block.type === 'spellList';
+  const fontSize = style.fontSize ?? (block.type === 'heading' ? 34 : block.type === 'spellList' ? 14 : 15);
+  const hasFontSize = block.type !== 'image' && (block.type !== 'divider' || block.content.ornament);
   const hasAlign = block.type === 'text' || block.type === 'heading' || block.type === 'statBlock';
   const isContainer =
     block.type === 'text' ||
@@ -1102,17 +1109,20 @@ export function PropertiesPanel({
         <Section title="Typography">
           {hasFontSize ? (
             <label>
-              <span className="field-label">Font size ({style.fontSize ?? 15}px)</span>
+              <span className="field-label">Font size ({fontSize}px)</span>
               <input
                 type="range"
                 min={10}
                 max={64}
-                value={style.fontSize ?? 15}
+                value={fontSize}
                 onChange={(e) => setStyle({fontSize: Number(e.target.value)})}
                 className="w-full accent-[var(--color-accent)]"
               />
             </label>
           ) : null}
+          {hasFontSize && <label><span className="field-label">Font color</span>
+            <input type="color" value={style.color ?? '#2a2118'} onChange={e=>setStyle({color:e.target.value})} className="h-9 w-full cursor-pointer rounded border border-slate-200"/>
+          </label>}
           {hasAlign ? (
             <div>
               <span className="field-label">Alignment</span>
@@ -1186,5 +1196,12 @@ export function PropertiesPanel({
     </aside>
   );
 }
+
+
+
+
+
+
+
 
 

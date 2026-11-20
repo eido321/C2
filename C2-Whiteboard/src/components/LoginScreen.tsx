@@ -24,7 +24,7 @@ export function LoginScreen({onLogin, onBack}: {onLogin: (name: string) => void;
       <h1 className="font-display text-3xl font-bold">{signUp ? 'Create an account' : 'Sign in'}</h1>
       <form onSubmit={authenticate} className="mt-5 grid gap-3 text-sm">
         <label>Username<input autoFocus required name="username" autoComplete="username" className="mt-1 block w-full rounded border p-2" /></label>
-        <label>Password<input required name="password" type="password" minLength={signUp ? 12 : 1} autoComplete={signUp ? 'new-password' : 'current-password'} className="mt-1 block w-full rounded border p-2" /></label>
+        <label>Password<input required name="password" type="password" minLength={signUp ? 6 : 1} autoComplete={signUp ? 'new-password' : 'current-password'} className="mt-1 block w-full rounded border p-2" /></label>
         {error && <p role="alert" className="text-red-700">{error}</p>}
         <button disabled={busy} className="rounded-lg bg-accent px-4 py-2 font-semibold text-white">{signUp ? 'Create account' : 'Sign in'}</button>
         <button type="button" disabled={busy} className="py-2 text-accent" onClick={() => {setSignUp(!signUp); setError('');}}>{signUp ? 'Use existing account' : 'Create an account'}</button>
@@ -33,3 +33,4 @@ export function LoginScreen({onLogin, onBack}: {onLogin: (name: string) => void;
     </section>
   </main>;
 }
+

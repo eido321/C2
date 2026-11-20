@@ -1,3 +1,4 @@
+import {castingFields} from '@/lib/castingFields';
 import {PDFDocument, rgb, type PDFPage, type PDFFont} from 'pdf-lib';
 import type {Block, SpellColumn, SpellEntry, Whiteboard} from '@/types';
 import {componentsLabel, spellLevelLabel} from '@/components/blocks/shared';
@@ -329,6 +330,32 @@ function addBlockFields(ctx: PdfFormContext, layout: PdfLayoutBlock): void {
     case 'statBlock':
       addStatBlockFields(ctx, layout);
       break;
+    case 'spellSlots': {
+      const {block,x,y,width,height}=layout;
+      if(block.type!=='spellSlots') break;
+      const col=width/3, h=height/5;
+      drawLabel(ctx,'SPELL SLOTS',x+width*.43,y+2,Math.min(14,h*.6));
+      block.content.rows.forEach((r,i)=>{
+        const left=x+Math.floor(i/3)*col, top=y+h*(1.6+i%3);
+        if(i%3===0){drawLabel(ctx,'Total',left+col*.32,y+h,8);drawLabel(ctx,'Expended',left+col*.52,y+h,8);}
+        drawLabel(ctx,'Level '+(i+1),left+2,top+h*.22,Math.min(10,col*.065));
+        addTextField(ctx,block.id+'.total'+i,left+col*.32,top,col*.16,h*.7,String(r.total||''),false,Math.min(14,h*.48));
+        r.used.forEach((used,k)=>addCheckField(ctx,block.id+'.used'+i+'_'+k,left+col*(.52+k*.11),top+h*.2,Math.min(col*.09,h*.45),used));
+      });
+      break;
+    }
+    case 'abilityScore': {
+      const {block,x,y,width,height} = layout;
+      if (block.type !== 'abilityScore') break;
+      const row = height / 4;
+      castingFields.forEach(([key,label],i)=>{
+        const top=y+i*row;
+        const w=i===0 ? width*.9 : width*.26;
+        addTextField(ctx,block.id+'.'+key,x+4,top+3,w,row*.6,block.content[key],false,Math.min(row*.42,24));
+        drawLabel(ctx,label.toUpperCase(),i===0 ? x+5 : x+w+10,top+row*(i===0?.73:.35),Math.min(width*.036,11));
+      });
+      break;
+    }
     case 'abilityScores':
       addAbilityFields(ctx, layout);
       break;
@@ -409,6 +436,9 @@ export async function buildInteractivePdf(
   form.updateFieldAppearances(font);
   return pdf.save();
 }
+
+
+
 
 
 

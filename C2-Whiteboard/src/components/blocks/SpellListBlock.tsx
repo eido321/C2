@@ -7,8 +7,8 @@ import {componentsLabel, spellLevelLabel, type BlockViewProps} from './shared';
 function SummaryCell({label, value}: {label: string; value: string}) {
   return (
     <div className="flex flex-1 flex-col items-center rounded-lg border border-gold/40 bg-white/35 px-2 py-1.5 shadow-sm">
-      <span className="font-display text-[9px] font-bold uppercase tracking-wide text-accent">{label}</span>
-      <span className="font-serif text-sm font-bold text-slate-800">{value || '—'}</span>
+      <span className="font-display text-[0.643em] font-bold uppercase tracking-wide text-accent">{label}</span>
+      <span className="font-serif text-[1em] font-bold text-slate-800">{value || '—'}</span>
     </div>
   );
 }
@@ -184,10 +184,10 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
           onChange={(e) => update({title: e.target.value})}
           onPointerDown={(e) => e.stopPropagation()}
           placeholder="Spell list title"
-          className="mb-2 border-b border-gold/40 bg-transparent pb-1 font-display text-sm font-bold uppercase tracking-wide text-accent outline-none placeholder:text-accent/35"
+          className="mb-2 border-b border-gold/40 bg-transparent pb-1 font-display text-[1em] font-bold uppercase tracking-wide text-accent outline-none placeholder:text-accent/35"
         />
       ) : content.title ? (
-        <div className="mb-2 border-b border-gold/40 pb-1 font-display text-sm font-bold uppercase tracking-wide text-accent">
+        <div className="mb-2 border-b border-gold/40 pb-1 font-display text-[1em] font-bold uppercase tracking-wide text-accent">
           {content.title}
         </div>
       ) : null}
@@ -197,27 +197,27 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
           {editing ? (
             <>
               <label className="flex flex-col items-center rounded-lg border border-gold/40 bg-white/35 px-1 py-1.5">
-                <span className="font-display text-[9px] font-bold uppercase tracking-wide text-accent">Ability</span>
+                <span className="font-display text-[0.643em] font-bold uppercase tracking-wide text-accent">Ability</span>
                 <input
                   value={content.ability ?? ''}
                   onChange={(e) => update({ability: e.target.value})}
-                  className="w-full bg-transparent text-center font-serif text-sm font-bold text-slate-800 outline-none"
+                  className="w-full bg-transparent text-center font-serif text-[1em] font-bold text-slate-800 outline-none"
                 />
               </label>
               <label className="flex flex-col items-center rounded-lg border border-gold/40 bg-white/35 px-1 py-1.5">
-                <span className="font-display text-[9px] font-bold uppercase tracking-wide text-accent">Save DC</span>
+                <span className="font-display text-[0.643em] font-bold uppercase tracking-wide text-accent">Save DC</span>
                 <input
                   value={content.saveDc ?? ''}
                   onChange={(e) => update({saveDc: e.target.value})}
-                  className="w-full bg-transparent text-center font-serif text-sm font-bold text-slate-800 outline-none"
+                  className="w-full bg-transparent text-center font-serif text-[1em] font-bold text-slate-800 outline-none"
                 />
               </label>
               <label className="flex flex-col items-center rounded-lg border border-gold/40 bg-white/35 px-1 py-1.5">
-                <span className="font-display text-[9px] font-bold uppercase tracking-wide text-accent">Spell Atk</span>
+                <span className="font-display text-[0.643em] font-bold uppercase tracking-wide text-accent">Spell Atk</span>
                 <input
                   value={content.attackBonus ?? ''}
                   onChange={(e) => update({attackBonus: e.target.value})}
-                  className="w-full bg-transparent text-center font-serif text-sm font-bold text-slate-800 outline-none"
+                  className="w-full bg-transparent text-center font-serif text-[1em] font-bold text-slate-800 outline-none"
                 />
               </label>
             </>
@@ -240,14 +240,14 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
           <section key={group.id} className="rounded-lg border border-gold/25 bg-white/20">
             <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-lg border-b border-gold/30 bg-parchment/95 px-2 py-1.5 backdrop-blur">
               <div>
-                <span className="font-display text-[11px] font-bold uppercase tracking-wide text-accent">
+                <span className="font-display text-[0.786em] font-bold uppercase tracking-wide text-accent">
                   {spellLevelLabel(group.level)}
                 </span>
-                <span className="ml-2 font-sans text-[10px] font-medium text-slate-400">{group.spells.length} spells</span>
+                <span className="ml-2 font-sans text-[0.714em] font-medium text-slate-400">{group.spells.length} spells</span>
               </div>
               {group.level > 0 ? (
                 editing ? (
-                  <span className="flex items-center gap-1.5 font-sans text-[10px] text-slate-500" onPointerDown={(e) => e.stopPropagation()}>
+                  <span className="flex items-center gap-1.5 font-sans text-[0.714em] text-slate-500" onPointerDown={(e) => e.stopPropagation()}>
                     <SlotPips
                       total={group.slotsTotal}
                       expended={group.slotsExpended}
@@ -273,7 +273,7 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
                     />
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1.5 font-sans text-[10px] text-slate-500">
+                  <span className="flex items-center gap-1.5 font-sans text-[0.714em] text-slate-500">
                     <SlotPips total={group.slotsTotal} expended={group.slotsExpended} editing={false} />
                     {group.slotsTotal > 0 ? (
                       <span>
@@ -349,7 +349,7 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
                       )}
                       {columns.includes('concentration') && spell.concentration ? (
                         <span
-                          className="shrink-0 rounded-full border border-gold/50 bg-white/70 px-1.5 py-0.5 font-sans text-[9px] font-bold uppercase text-ink-soft"
+                          className="shrink-0 rounded-full border border-gold/50 bg-white/70 px-1.5 py-0.5 font-sans text-[0.643em] font-bold uppercase text-ink-soft"
                           title="Concentration"
                         >
                           Conc
@@ -357,7 +357,7 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
                       ) : null}
                       {columns.includes('ritual') && spell.ritual ? (
                         <span
-                          className="shrink-0 rounded-full border border-gold/50 bg-white/70 px-1.5 py-0.5 font-sans text-[9px] font-bold uppercase text-ink-soft"
+                          className="shrink-0 rounded-full border border-gold/50 bg-white/70 px-1.5 py-0.5 font-sans text-[0.643em] font-bold uppercase text-ink-soft"
                           title="Ritual"
                         >
                           Ritual
@@ -376,7 +376,7 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
                       ) : null}
                     </div>
                     {meta.length > 0 ? (
-                      <div className={cn('mt-1 flex flex-wrap gap-1 font-sans text-[10px]', group.level > 0 ? 'pl-6' : 'pl-0')}>
+                      <div className={cn('mt-1 flex flex-wrap gap-1 font-sans text-[0.714em]', group.level > 0 ? 'pl-6' : 'pl-0')}>
                         {meta.map((item) => (
                           <span key={`${spell.id}-${item.label}-${item.value}`} className="rounded-full bg-parchment-deep/60 px-1.5 py-0.5 text-slate-500">
                             <span className="font-semibold uppercase tracking-wide text-accent/70">{item.label}</span> {item.value}
@@ -388,7 +388,7 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
                       <div className="mt-2 rounded-lg border border-gold/25 bg-parchment/45 p-2">
                         {editing ? (
                           <div onPointerDown={(e) => e.stopPropagation()}>
-                            <span className="mb-1 block font-sans text-[10px] font-bold uppercase tracking-wide text-accent/70">
+                            <span className="mb-1 block font-sans text-[0.714em] font-bold uppercase tracking-wide text-accent/70">
                               Description
                             </span>
                             <textarea
@@ -406,7 +406,7 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
                           </div>
                         ) : description ? (
                           <div>
-                            <span className="mb-1 block font-sans text-[10px] font-bold uppercase tracking-wide text-accent/70">
+                            <span className="mb-1 block font-sans text-[0.714em] font-bold uppercase tracking-wide text-accent/70">
                               Description
                             </span>
                             <p className="whitespace-pre-wrap text-[0.9em] italic leading-snug text-slate-500">{description}</p>
@@ -424,7 +424,7 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
                 type="button"
                 onClick={() => addSpellAfter(group.id, group.spells.length - 1, 'New spell')}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="mx-1.5 mb-1.5 flex w-fit items-center gap-1 rounded-md px-1.5 py-1 font-sans text-xs font-medium text-accent hover:bg-white/35"
+                className="mx-1.5 mb-1.5 flex w-fit items-center gap-1 rounded-md px-1.5 py-1 font-sans text-[0.857em] font-medium text-accent hover:bg-white/35"
               >
                 <Plus size={13} /> Add spell
               </button>
@@ -435,3 +435,4 @@ export function SpellListBlock({block, editing, update}: BlockViewProps<'spellLi
     </div>
   );
 }
+

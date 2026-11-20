@@ -1,6 +1,8 @@
 export type BlockType =
   | 'text'
   | 'heading'
+  | 'spellSlots'
+  | 'abilityScore'
   | 'abilityScores'
   | 'statBlock'
   | 'image'
@@ -136,6 +138,8 @@ export interface SpellListContent {
 export type BlockContentMap = {
   text: TextContent;
   heading: HeadingContent;
+  spellSlots: {rows:import('../lib/slotRows').SlotRow[]};
+  abilityScore: {ability:string; modifier:string; saveDc:string; attackBonus:string};
   abilityScores: AbilityScoresContent;
   statBlock: StatBlockContent;
   image: ImageContent;
@@ -200,3 +204,7 @@ export interface WhiteboardTemplate {
   accent: string;
   build: () => Block[];
 }
+
+
+
+

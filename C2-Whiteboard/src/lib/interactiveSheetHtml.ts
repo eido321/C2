@@ -1,3 +1,4 @@
+import {castingFields} from '@/lib/castingFields';
 import type {Block, ListItem, SpellColumn, SpellEntry, Whiteboard} from '@/types';
 import {componentsLabel, spellLevelLabel} from '@/components/blocks/shared';
 import {listItemChecked, listItemText} from '@/lib/listContent';
@@ -165,6 +166,14 @@ function renderBlock(block: Block, blockIndex: number, originX: number, originY:
         <input class="stat-hint" data-path="blocks.${blockIndex}.content.hint" value="${escapeHtml(block.content.hint ?? '')}" placeholder="hint" />
       </div>`;
       break;
+    case 'spellSlots':
+      inner='<strong>Spell Slots</strong>'+block.content.rows.map((r,i)=>`<div>Level ${i+1}: ${r.total} · ${r.used.filter(Boolean).length} expended</div>`).join('');
+      break;
+    case 'abilityScore': {
+      const content=block.content;
+      inner=castingFields.map(([key,label])=>`<label>${label}<input data-path="blocks.${blockIndex}.content.${key}" value="${escapeHtml(content[key])}"/></label>`).join('');
+      break;
+    }
     case 'abilityScores':
       inner = `<div class="ability-grid">${block.content.abilities
         .map(
@@ -469,3 +478,6 @@ export function parseInteractiveSheetHtml(html: string): Whiteboard {
   }
   return JSON.parse(match[1]) as Whiteboard;
 }
+
+
+

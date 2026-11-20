@@ -129,10 +129,14 @@ test('all eight block editors, layers, canvas, shortcuts, PDF and JSON round tri
   await add('Stat AC');
   await pane.getByLabel('Value', {exact: true}).fill('19');
   await add('List Inventory');
+  assert.equal(await pane.getByPlaceholder('List item').count(), 1);
+  assert.equal(await pane.getByPlaceholder('List item').inputValue(), 'Backpack');
+  assert.equal(await pane.getByLabel('Title',{exact:true}).inputValue(), 'Inventory & Gear');
   await pane.getByPlaceholder('List item').first().fill('Journal');
   await button(pane, 'Numbers').click();
   await button(pane, 'Checks').click();
   await button(pane, 'Add').click();
+  assert.equal(await pane.getByPlaceholder('List item').last().inputValue(), '');
   await pane.getByTitle('Checked', {exact: true}).first().check();
   await pane.getByTitle('Move down').first().click();
   await pane.getByTitle('Remove item').last().click();
@@ -247,7 +251,7 @@ test('all eight block editors, layers, canvas, shortcuts, PDF and JSON round tri
   assert.match(messages.at(-1), /Invalid sheet/);
   assert.deepEqual((await draft(p)).blocks, original.blocks);
   await p.reload();
-  await button(p, /Continue last whiteboard/).click();
+  assert.equal(new URL(p.url()).pathname, '/whiteboard');
   await saved(p);
   assert.deepEqual((await draft(p)).blocks, original.blocks);
 });
@@ -255,6 +259,7 @@ test('all eight block editors, layers, canvas, shortcuts, PDF and JSON round tri
 test('phone guest editor, guest draft migration, searchable private library and session boundaries', async (t) => {
   const p = await open(t, 390);
   await button(p, /Blank canvas/).click();
+  await p.getByLabel('Sheet name').waitFor();
   assert.ok((await p.locator('main').boundingBox()).width > 250);
   assert.equal(await p.evaluate(() => document.documentElement.scrollWidth), 390);
   await p.getByTitle('Show layers & blocks').click();
@@ -265,7 +270,7 @@ test('phone guest editor, guest draft migration, searchable private library and 
   await p.getByTitle('Collapse panel').click();
   await p.getByLabel('Sheet name').fill('Warden');
   await saved(p);
-  await button(p, 'My sheets').click();
+  await button(p, 'Exit editor').click();
   await p.getByRole('heading', {name: 'My sheets', exact: true}).waitFor();
   await p.getByRole('heading', {name: 'Start a new sheet'}).waitFor();
   assert.equal(await p.getByTitle('Close', {exact: true}).count(), 0);
@@ -274,22 +279,24 @@ test('phone guest editor, guest draft migration, searchable private library and 
   await button(p, 'Continue without signing in').click();
   await button(p, 'Login').click();
   await button(p, 'Create an account').click();
-  const password = 'test-only-account-password';
+  const password = 'abcdef';
+  assert.equal(await p.getByLabel('Password').getAttribute('minlength'), '6');
+  assert.equal((await p.request.post(base + '/api/library', {data:{action:'register',username:'too_short',password:'abcde'}})).status(),400);
   await p.getByLabel('Username').fill('test_warden');
   await p.getByLabel('Password').fill(password);
   await button(p, 'Create account').click();
   await button(p, /Copy this device/).click();
   await p.getByText('Saved to account', {exact: true}).waitFor();
-  await button(p, 'My sheets').click();
+  await button(p, 'Exit editor').click();
   await p.getByRole('heading', {name: 'D&D 2024 Classes'}).waitFor();
   const search = p.getByLabel('Find a sheet');
   await search.fill('missing');
   await p.getByText('No matching sheets.').waitFor();
   await search.fill('ward');
-  await button(p, /Warden/).click();
+  await button(p, /^Warden/).click();
   await p.getByLabel('Sheet name').fill('Warden revised');
   await p.getByText('Saved to account', {exact: true}).waitFor();
-  await button(p, 'My sheets').click();
+  await button(p, 'Exit editor').click();
   const api = (client, data) => client.post(base + '/api/library', {data});
   const rows = (await (await api(p.request, {action: 'list'})).json()).sheets;
   assert.equal(rows.length, 1);
@@ -306,8 +313,13 @@ test('phone guest editor, guest draft migration, searchable private library and 
   await q.getByLabel('Username').fill('test_warden');
   await q.getByLabel('Password').fill(password);
   await button(q, 'Sign in').click();
-  await button(q, /Warden revised/).click();
+  await button(q, /^Warden revised/).click();
   assert.equal(await q.getByLabel('Sheet name').inputValue(), 'Warden revised');
+  const editorAddress = q.url();
+  assert.equal(new URL(editorAddress).searchParams.get('sheet'), id);
+  await q.reload();
+  assert.equal(await q.getByLabel('Sheet name').inputValue(), 'Warden revised');
+  assert.equal(q.url(), editorAddress);
   assert.equal(
     (await api(p.request, {action: 'login', username: 'test_warden', password: 'invalid'})).status(),
     401,
@@ -316,6 +328,20 @@ test('phone guest editor, guest draft migration, searchable private library and 
   await api(p.request, {action: 'register', username: 'test_other', password});
   assert.deepEqual((await (await api(p.request, {action: 'list'})).json()).sheets, []);
   assert.equal((await api(p.request, {action: 'open', id})).status(), 404);
+  assert.equal((await api(p.request, {action: 'delete', id})).status(), 404);
+  await button(q, 'Exit editor').click();
+  const trash = button(q, 'Delete Warden revised');
+
+  await trash.click();
+  const confirmation = q.getByRole('dialog',{name:'Delete character sheet?'});
+  await confirmation.getByRole('button',{name:'Cancel'}).click();
+  await trash.waitFor();
+
+  await trash.click();
+  await confirmation.getByRole('button',{name:'Delete sheet'}).click();
+  await trash.waitFor({state:'detached'});
+  assert.equal(await button(q, /Continue last whiteboard/).count(), 0);
+  assert.equal((await api(q.request, {action:'open', id})).status(), 404);
 });
 
 test('pointer movement, resize handles, inline edits, panel sizing, panning and legacy HTML import', async (t) => {
@@ -356,11 +382,13 @@ test('pointer movement, resize handles, inline edits, panel sizing, panning and 
   assert.equal((await draft(p)).blocks[0].x, current.x);
   assert.deepEqual((await draft(p)).viewport.pan, {x: 24, y: 16});
   const area = await p.locator('main').boundingBox();
+  await p.keyboard.down('Space');
   await p.mouse.move(area.x + 25, area.y + 25);
   await p.mouse.down();
   await p.mouse.move(area.x + 75, area.y + 55);
   await p.mouse.up();
   await saved(p);
+  await p.keyboard.up('Space');
   assert.deepEqual((await draft(p)).viewport.pan, {x: 74, y: 46});
   const left = p.locator('aside').first();
   const originalWidth = (await left.boundingBox()).width;
@@ -385,3 +413,191 @@ test('pointer movement, resize handles, inline edits, panel sizing, panning and 
   assert.equal(restored.viewport.zoom, 1);
 });
 
+
+
+
+
+
+
+test('canvas selection, clipboard, movement and history', async t => {
+  const p = await open(t);
+  await p.context().grantPermissions(['clipboard-read','clipboard-write']);
+  await button(p,/Blank canvas/).click();
+  await button(p,/^Heading Title/).click();
+  const pane = p.locator('aside').last();
+  await pane.getByLabel('X',{exact:true}).fill('10');
+  await pane.getByLabel('Y',{exact:true}).fill('60');
+  await button(p,/^Text Notes/).click();
+  await pane.getByLabel('X',{exact:true}).fill('410');
+  await pane.getByLabel('Y',{exact:true}).fill('60');
+  const area = await p.locator('main').boundingBox();
+  const point = (x,y) => p.mouse.move(area.x+x,area.y+y);
+  await point(3,45); await p.mouse.down(); await point(455,150); await p.mouse.up();
+  assert.equal(await p.getByTitle('Group selection',{exact:true}).isEnabled(),true);
+  await p.keyboard.down('Control'); await p.mouse.click(area.x+450,area.y+100); await p.keyboard.up('Control');
+  assert.equal(await p.getByTitle('Group selection',{exact:true}).isEnabled(),false);
+  await p.keyboard.press('Control+a');
+  await point(80,95); await p.mouse.down(); await point(110,115); await p.mouse.up();
+  await saved(p);
+  assert.deepEqual((await draft(p)).blocks.map(b=>b.x),[40,440]);
+  await p.keyboard.press('Shift+ArrowRight');
+  await p.keyboard.press('Control+c');
+  await p.keyboard.press('Control+v');
+  await saved(p);
+  assert.equal((await draft(p)).blocks.length,4);
+  await p.keyboard.press('Control+x');
+  await saved(p); assert.equal((await draft(p)).blocks.length,2);
+  await p.keyboard.press('Control+z');
+  await saved(p); assert.equal((await draft(p)).blocks.length,4);
+  await p.keyboard.press('?');
+  await p.getByRole('dialog',{name:'Keyboard shortcuts'}).waitFor();
+  await p.keyboard.press('Escape');
+  await p.keyboard.press('Control+Shift+z');
+  await saved(p); assert.equal((await draft(p)).blocks.length,2);
+});
+
+
+
+
+test('clipboard and dropped image files persist as image blocks', async t => {
+  const p = await open(t);
+  await p.context().grantPermissions(['clipboard-read','clipboard-write']);
+  await button(p,/Blank canvas/).click();
+  await p.getByLabel('Sheet name').waitFor();
+  await p.evaluate(async () => {
+    const c = document.createElement('canvas'); c.width=32;c.height=16;
+    const blob=await new Promise(resolve=>c.toBlob(resolve));
+    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    const data=new DataTransfer(); data.items.add(new File([blob],'portrait.png',{type:'image/png'}));
+    const canvas=document.querySelector('main .touch-none');
+    const rect=canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:data,clientX:rect.left+75,clientY:rect.top+90}));
+  });
+  await p.keyboard.press('Control+v');
+  await p.waitForFunction(()=>JSON.parse(localStorage.getItem('c2_whiteboard_v1')).blocks.length===2);
+  const blocks=(await draft(p)).blocks;
+  assert.ok(blocks.every(b=>b.type==='image' && b.content.src.startsWith('data:image/png') && b.width===32 && b.height===16));
+  const dropped=blocks.find(b=>b.content.alt==='portrait.png');assert.equal(dropped.x,59);assert.ok(Math.abs(dropped.y-82)<=1);
+  await p.reload(); await p.getByLabel('Sheet name').waitFor();
+  assert.equal(await p.locator('main img').count(),2);
+});
+
+
+test('font slider scales rendered list and spell titles and persists', async t => {
+  const p = await open(t);
+  await button(p,/Blank canvas/).click();
+  for (const [palette,title] of [[/^List Inventory/,'Inventory & Gear'],[/^Spell List Spells/,'Spells']]) {
+    await button(p,palette).click();
+    const text=p.locator('main').getByText(title,{exact:true}).first();
+    const pixels=()=>text.evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+    const before=await pixels();
+    await p.getByRole('slider',{name:/Font size/}).press('End');
+    assert.ok(await pixels()>before*2);
+    await saved(p);
+  }
+  await p.reload();
+  assert.equal(await p.locator('main').getByText('Spells',{exact:true}).first().evaluate(el=>getComputedStyle(el).fontSize),'64px');
+});
+
+test('two-finger wheel pans on hover and scrolls only the focused list',async t=>{
+  const p=await open(t);
+  await p.evaluate(()=>localStorage.setItem('c2_whiteboard_v1',JSON.stringify({
+    id:'wheel',name:'Wheel check',blocks:[{id:'list',type:'list',x:30,y:35,width:300,height:180,
+    content:{title:'Gear',ordered:false,items:Array.from({length:50},(_,i)=>'Item '+i)}}],
+    groups:[],viewport:{pan:{x:0,y:0},zoom:1},updatedAt:Date.now()
+  })));
+  await p.goto(base+'/whiteboard');
+  const rows=p.locator('main [data-canvas-wheel="internal-scroll"]');
+  await rows.hover();await p.mouse.wheel(0,20);
+  await p.waitForFunction(()=>JSON.parse(localStorage.getItem('c2_whiteboard_v1')).viewport.pan.y===-20);
+  assert.equal(await rows.evaluate(el=>el.scrollTop),0);
+  await rows.click();await p.mouse.wheel(0,120);
+  await p.waitForFunction(()=>document.querySelector('main [data-canvas-wheel]').scrollTop>0);
+  const offset=await rows.evaluate(el=>el.scrollTop);
+  await p.locator('main').getByText('Gear',{exact:true}).hover();await p.mouse.wheel(0,200);
+  await p.waitForFunction(prev=>document.querySelector('main [data-canvas-wheel]').scrollTop>prev,offset);
+  await rows.evaluate(el=>{el.scrollTop=el.scrollHeight;});
+  await rows.hover();await p.mouse.wheel(0,130);
+  await p.waitForTimeout(550);
+  assert.deepEqual((await draft(p)).viewport.pan,{x:0,y:-20});
+  await p.keyboard.press('Escape');await rows.hover();await p.mouse.wheel(0,20);
+  await p.waitForFunction(()=>JSON.parse(localStorage.getItem('c2_whiteboard_v1')).viewport.pan.y===-40);
+});
+
+
+test('canvas object menu groups, locks, unlocks and ungroups the selection', async t=>{
+  const p=await open(t);
+  await button(p,/Blank canvas/).click();
+  await button(p,/^Heading Title/).click();
+  await button(p,/^Text Notes/).click();
+  await p.keyboard.press('Control+a');
+  const object=p.locator('main [data-object-id]').last();
+  const menu=p.getByRole('dialog',{name:'Object actions'});
+  for(const action of ['Group','Lock','Unlock','Ungroup']) {
+    await object.click({button:'right'});
+    assert.ok(await menu.evaluate(el => document.activeElement === el));
+    await p.keyboard.press('Tab');
+    assert.ok(await menu.locator('button').first().evaluate(el => el.matches(':focus-visible')));
+    const target=menu.getByRole('button',{name:action,exact:true});
+    const copy=menu.getByRole('button',{name:'Copy',exact:true});
+    await copy.hover();
+    const highlight=await copy.evaluate(el=>getComputedStyle(el).backgroundColor);
+    await target.hover();
+    assert.equal(await target.evaluate(el=>getComputedStyle(el).backgroundColor),highlight);
+    assert.notEqual(await copy.evaluate(el=>getComputedStyle(el).backgroundColor),highlight);
+    await target.click();
+    await saved(p);
+    const b=await draft(p);
+    assert.equal(b.groups.length,action==='Ungroup'?0:1);
+    assert.ok(b.blocks.every(block=>!!block.locked===(action==='Lock')));
+  }
+});
+
+
+
+test('single Ability Score card saves and exports its four casting fields',async t=>{
+  const p=await open(t);
+  await button(p,/Blank canvas/).click();
+  await button(p,/^Ability Score Spellcasting/).click();
+  const pane=p.locator('aside').last();
+  for (const label of ['Spellcasting ability','Spellcasting modifier','Spell save DC','Spell attack bonus']) assert.equal(await pane.getByLabel(label,{exact:true}).inputValue(),'');
+  await pane.getByLabel('Spell save DC').fill('18');
+  await saved(p);
+  const board=await draft(p);
+  assert.equal(board.blocks[0].type,'abilityScore');
+  const pdf=await PDFDocument.load(await download(p,'Export PDF'));
+  assert.equal(pdf.getForm().getTextField(board.blocks[0].id+'.saveDc').getText(),'18');
+  await p.reload();
+  await p.locator('main .casting-card').getByText('18',{exact:true}).waitFor();
+});
+
+test('Spell Slots totals and expended diamonds persist and export',async t=>{
+  const p=await open(t);await button(p,/Blank canvas/).click();
+  await button(p,/^Spell Slots Track/).click();
+  const card=p.locator('main .slot-card');
+  assert.equal(await card.locator('b').count(),9);
+  assert.deepEqual(await card.locator('.slot-total').allTextContents(),Array(9).fill(''));
+  assert.equal(await card.locator('[aria-pressed=true]').count(),0);
+  await p.locator('aside').last().getByLabel('Level 1 total').fill('2');
+  await card.getByRole('button',{name:'Level 1 slot 2',exact:true}).click();
+  await p.locator('aside').last().getByLabel('Level 9 total').fill('1');
+  await card.getByRole('button',{name:'Level 9 slot 1',exact:true}).click();
+  await saved(p);
+  const b=(await draft(p)).blocks[0];
+  const pdf=await PDFDocument.load(await download(p,'Export PDF'));
+  assert.equal(pdf.getForm().getCheckBox(b.id+'.used8_0').isChecked(),true);
+  await p.reload();await card.waitFor();
+  assert.equal(await card.getByRole('button',{name:'Level 1 slot 2',exact:true}).getAttribute('aria-pressed'),'true');
+});
+
+
+
+test('typography controls update rendered stat text and survive refresh',async t=>{
+  const p=await open(t);await button(p,/Blank canvas/).click();await button(p,/^Stat AC/).click();
+  const pane=p.locator('aside').last();
+  const value=p.locator('main').getByText('15',{exact:true}).first();
+  const size=()=>value.evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+  const before=await size();await pane.getByRole('slider',{name:/Font size/}).press('End');assert.ok(await size()>before*2);
+  await pane.getByLabel('Font color').fill('#006633');await saved(p);await p.reload();
+  assert.equal(await value.evaluate(el=>getComputedStyle(el).color),'rgb(0, 102, 51)');
+});

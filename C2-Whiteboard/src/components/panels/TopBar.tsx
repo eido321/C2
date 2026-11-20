@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {Check, FileText, LayoutTemplate, Loader2, Upload} from 'lucide-react';
+import {Check, FileText, LayoutTemplate, Loader2, LogOut, Upload} from 'lucide-react';
 import {exportWhiteboard, parsePdfWhiteboard, parseSheetHtml, parseWhiteboard, readFileAsText} from '@/lib/io';
 import {useWhiteboard} from '@/store/WhiteboardContext';
 
@@ -68,9 +68,6 @@ export function TopBar({onOpenStart, onExportSheet}: Props) {
         <button className="panel-btn" disabled={saveStatus === 'saving'} onClick={() => openMenu(false)}>
           <LayoutTemplate size={16} /> Templates
         </button>
-        <button className="panel-btn" disabled={saveStatus === 'saving'} onClick={() => openMenu(true)}>
-          My sheets
-        </button>
         <button className="panel-btn" onClick={() => fileRef.current?.click()}>
           <Upload size={16} /> Import sheet
         </button>
@@ -82,6 +79,9 @@ export function TopBar({onOpenStart, onExportSheet}: Props) {
           <FileText size={16} /> Export PDF
         </button>
         <button className="panel-btn" title="Download an editable JSON backup" onClick={() => exportWhiteboard(board)}>Export JSON</button>
+        <button className="editor-exit icon-btn" disabled={saveStatus === 'saving'} onClick={() => openMenu(true)} aria-label="Exit editor" title="Exit editor and return to My sheets">
+          <LogOut size={19} />
+        </button>
         <input ref={fileRef}
           type="file"
           accept="application/pdf,.pdf,text/html,.html,.htm,application/json,.json"
@@ -95,6 +95,7 @@ export function TopBar({onOpenStart, onExportSheet}: Props) {
     </header>
   );
 }
+
 
 
 

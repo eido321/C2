@@ -4,7 +4,7 @@ A Figma-like whiteboard for building **custom D&D character sheets** out of drag
 
 ## Features
 
-- **Infinite canvas** — pan (drag empty space, middle-mouse, or hold `Space` + drag), zoom (`Ctrl`/`Cmd` + wheel, or the zoom controls), fit-to-content and reset, with a dotted grid that scales with zoom.
+- **Infinite canvas** — pan (middle-mouse, or hold `Space` + drag), zoom (`Ctrl`/`Cmd` + wheel, or the zoom controls), fit-to-content and reset, with a dotted grid that scales with zoom.
 - **Freeform blocks** — absolutely positioned with drag-to-move, 8-handle resize, delete (`Del`/`Backspace`), duplicate (`Ctrl`/`Cmd`+`D`), layering, and optional snap-to-grid.
 - **Block types**
   - `heading` — title + subtitle
@@ -65,10 +65,16 @@ C2-Whiteboard/
 
 | Action | Shortcut |
 | --- | --- |
+| Select multiple blocks | Drag on empty canvas, or Ctrl/Cmd/Shift-click blocks |
+| Select all editable blocks | Ctrl/Cmd + A |
+| Copy / cut / paste blocks | Ctrl/Cmd + C / X / V |
+| Undo / redo | Ctrl/Cmd + Z / Shift+Z |
+| Nudge selection | Arrow keys (Shift for 10 units) |
+| Group / ungroup | Ctrl/Cmd + G / Shift+G |
 | Delete block | `Del` / `Backspace` |
 | Duplicate block | `Ctrl`/`Cmd` + `D` |
 | Deselect / stop editing | `Esc` |
-| Pan | `Space` + drag, middle-mouse, or drag empty space |
+| Pan | `Space` + drag, middle-mouse drag |
 | Zoom | `Ctrl`/`Cmd` + wheel |
 | Edit block content | double-click a block |
 
@@ -84,4 +90,5 @@ The Vercel function in api/library.js uses Neon Postgres. Connect a Neon databas
 Run `npm test` with Chrome installed (or set `CHROME_PATH` to a Chromium executable).
 The suite builds the app, serves it on localhost, and runs the library API against an isolated in-memory Postgres database.
 It covers templates, block editors, layers, pointer and keyboard controls, phone layouts, PDF/JSON/HTML imports, account autosave, session isolation and conflicting saves.
+
 

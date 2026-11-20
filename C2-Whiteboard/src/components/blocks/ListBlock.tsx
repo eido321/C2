@@ -106,29 +106,29 @@ export function ListBlock({block, editing, update}: BlockViewProps<'list'>) {
     }
 
     return (
-      <span className="mt-0.5 min-w-5 shrink-0 text-right font-sans text-xs font-semibold text-gold">
+      <span className="mt-0.5 min-w-5 shrink-0 text-right font-sans text-[0.8em] font-semibold text-gold">
         {content.ordered ? `${index + 1}.` : '•'}
       </span>
     );
   };
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden text-ink">
+    <div style={{fontSize}} className="flex h-full w-full flex-col overflow-hidden text-ink">
       {editing ? (
         <input
           value={content.title ?? ''}
           onChange={(e) => update({title: e.target.value})}
           onPointerDown={(e) => e.stopPropagation()}
           placeholder="List title"
-          className="mb-2 border-b border-gold/40 bg-transparent pb-1 font-display text-sm font-bold uppercase tracking-wide text-accent outline-none placeholder:text-accent/35"
+          className="mb-2 border-b border-gold/40 bg-transparent pb-1 font-display text-[0.933em] font-bold uppercase tracking-wide text-accent outline-none placeholder:text-accent/35"
         />
       ) : content.title ? (
-        <div className="mb-2 border-b border-gold/40 pb-1 font-display text-sm font-bold uppercase tracking-wide text-accent">
+        <div className="mb-2 border-b border-gold/40 pb-1 font-display text-[0.933em] font-bold uppercase tracking-wide text-accent">
           {content.title}
         </div>
       ) : null}
 
-      <div className="no-scrollbar flex-1 space-y-1.5 overflow-auto pr-1 font-serif text-ink-soft" style={{fontSize}}>
+      <div data-canvas-wheel="internal-scroll" className="no-scrollbar min-h-0 flex-1 space-y-1.5 overflow-auto overscroll-contain pr-1 font-serif text-ink-soft" style={{fontSize}}>
         {items.map((item, i) => (
           <div key={i} className="group/list-row flex items-start gap-2" style={{paddingLeft: listItemIndent(item) * 16}}>
             <Marker item={item} index={i} />
@@ -173,9 +173,9 @@ export function ListBlock({block, editing, update}: BlockViewProps<'list'>) {
       {editing ? (
         <button
           type="button"
-          onClick={() => addItemAfter(items.length - 1, 'New item')}
+          onClick={() => addItemAfter(items.length - 1, '')}
           onPointerDown={(e) => e.stopPropagation()}
-          className="mt-2 flex w-fit items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-accent hover:bg-white/35"
+          className="mt-2 flex w-fit items-center gap-1 rounded-md px-1.5 py-1 text-[0.8em] font-medium text-accent hover:bg-white/35"
         >
           <Plus size={13} /> Add item
         </button>
@@ -183,3 +183,6 @@ export function ListBlock({block, editing, update}: BlockViewProps<'list'>) {
     </div>
   );
 }
+
+
+

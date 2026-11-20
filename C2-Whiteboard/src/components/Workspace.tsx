@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import {ChevronDown, ChevronRight, Layers, PanelLeftClose, PanelLeftOpen, PanelRightOpen} from 'lucide-react';
 import type {BlockType} from '@/types';
+import {readBoard} from '@/lib/readBoard';
 import {createBlock} from '@/lib/blockDefaults';
 import {exportWhiteboardPdf} from '@/lib/io';
 import {LEFT_PANEL, RIGHT_PANEL, usePanelWidth} from '@/lib/panelWidth';
@@ -53,8 +54,29 @@ export function Workspace({onOpenStart, menuOpen}: {onOpenStart: (account: boole
   };
 
   useEffect(() => {
+    const selection = board.blocks.filter(b => selectedIds.includes(b.id) && !b.hidden && !b.locked);
+    const selectionData = () => {
+      const ids = new Set(selection.map(b => b.id));
+      return {blocks:selection,groups:board.groups.filter(g=>g.childIds.every(id=>ids.has(id)))};
+    };
+    const copy = (event: ClipboardEvent) => {
+      if (menuOpen || editingId || isTypingTarget(event.target) || !selection.length || !event.clipboardData) return;
+      event.clipboardData.setData('text/plain','C2 blocks\n'+JSON.stringify(selectionData()));
+      event.preventDefault();
+      if (event.type === 'cut') dispatch({type:'DELETE_BLOCKS',ids:selection.map(b=>b.id)});
+    };
+    const paste = (event: ClipboardEvent) => {
+      if (menuOpen || editingId || isTypingTarget(event.target)) return;
+      const text = event.clipboardData?.getData('text/plain');
+      if (!text?.startsWith('C2 blocks\n')) return;
+      try {
+        const data = readBoard(JSON.parse(text.slice('C2 blocks\n'.length)));
+        dispatch({type:'PASTE',blocks:data.blocks,groups:data.groups});
+        event.preventDefault();
+      } catch { /* Leave an unrecognized clipboard entry alone. */ }
+    };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (menuOpen) return;
+      if (menuOpen || (e.target as Element)?.closest?.('dialog')) return;
       if (isTypingTarget(e.target) || editingId) {
         if (e.key === 'Escape') {
           (e.target as HTMLElement)?.blur?.();
@@ -66,12 +88,30 @@ export function Workspace({onOpenStart, menuOpen}: {onOpenStart: (account: boole
         dispatch({type: 'SELECT', id: null});
         return;
       }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length) {
         e.preventDefault();
-        dispatch({type: 'DELETE_BLOCKS', ids: selectedIds});
+        dispatch({type: 'DELETE_BLOCKS', ids: selection.map(b=>b.id)});
         return;
       }
       const mod = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+      if (mod && (key === 'z' || key === 'y')) {
+        e.preventDefault();
+        dispatch({type:key === 'y' || e.shiftKey ? 'REDO' : 'UNDO'});
+        return;
+      }
+      if (mod && key === 'a') {
+        e.preventDefault();
+        dispatch({type:'SELECT_MANY',ids:board.blocks.filter(b=>!b.hidden && !b.locked).map(b=>b.id)});
+        return;
+      }
+      const directions: Record<string,[number,number]> = {ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
+      if (directions[e.key] && selection.length) {
+        e.preventDefault();
+        const [x,y] = directions[e.key], distance = e.shiftKey ? 10 : 1;
+        dispatch({type:'MOVE',ids:selectedIds,dx:x*distance,dy:y*distance});
+        return;
+      }
       if (mod && e.key.toLowerCase() === 'g') {
         if (e.shiftKey) {
           const groups = board.groups.filter((g) => g.childIds.every((id) => selectedIds.includes(id)));
@@ -85,14 +125,18 @@ export function Workspace({onOpenStart, menuOpen}: {onOpenStart: (account: boole
         }
         return;
       }
-      if (mod && e.key.toLowerCase() === 'd' && selectedIds.length === 1) {
+      if (mod && e.key.toLowerCase() === 'd' && selection.length) {
         e.preventDefault();
-        dispatch({type: 'DUPLICATE_BLOCK', id: selectedIds[0]});
+        dispatch({type:'PASTE', ...selectionData()});
       }
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [dispatch, editingId, selectedIds, board.groups, menuOpen]);
+    window.addEventListener('copy', copy); window.addEventListener('cut', copy); window.addEventListener('paste', paste);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('copy',copy); window.removeEventListener('cut',copy); window.removeEventListener('paste',paste);
+    };
+  }, [dispatch, editingId, selectedIds, board.groups, board.blocks, menuOpen]);
 
   return (
     <div inert={menuOpen} className={menuOpen ? "hidden" : "flex h-full w-full flex-col"}>
@@ -176,6 +220,9 @@ export function Workspace({onOpenStart, menuOpen}: {onOpenStart: (account: boole
     </div>
   );
 }
+
+
+
 
 
 

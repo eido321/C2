@@ -68,7 +68,11 @@ export function BlockRenderer({
     if (locked || e.button !== 0) return;
     if (editing) { e.stopPropagation(); return; }
     e.stopPropagation();
-    onSelect(block.id);
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      dispatch({type:'TOGGLE_SELECT', id:block.id});
+      return;
+    }
+    if (!selected) onSelect(block.id);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     drag.current = {startX: e.clientX, startY: e.clientY, bx: block.x, by: block.y};
   };
@@ -119,7 +123,7 @@ export function BlockRenderer({
       // Alt temporarily disables all snapping for free placement.
       if (e.altKey) {
         onGuidesChange([]);
-        dispatch({type: 'UPDATE_BLOCK', id: block.id, patch: {x: nx, y: ny}});
+        dispatch({type: 'DRAG', id: block.id, x: nx, y: ny});
         return;
       }
 
@@ -135,7 +139,7 @@ export function BlockRenderer({
       const py = result.snappedY ? result.y : snapVal(ny);
 
       onGuidesChange(result.guides);
-      dispatch({type: 'UPDATE_BLOCK', id: block.id, patch: {x: px, y: py}});
+      dispatch({type: 'DRAG', id: block.id, x: px, y: py});
     }
   };
 
@@ -160,6 +164,10 @@ export function BlockRenderer({
 
   return (
     <div
+      data-object-id={block.id}
+      tabIndex={block.type === 'list' || block.type === 'spellList' ? -1 : undefined}
+      onKeyDown={event => { if (event.key === 'Escape' && event.target === event.currentTarget) event.currentTarget.blur(); }}
+      data-list-block={block.type === 'list' || block.type === 'spellList' ? '' : undefined}
       className="group absolute select-none"
       style={{
         left: block.x,
@@ -219,4 +227,8 @@ export function BlockRenderer({
     </div>
   );
 }
+
+
+
+
 

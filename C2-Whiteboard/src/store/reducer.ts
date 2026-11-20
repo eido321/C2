@@ -9,6 +9,9 @@ export interface WhiteboardState {
 
 export type WhiteboardAction =
   | {type: 'LOAD_BOARD'; board: Whiteboard}
+  | {type: 'PASTE'; blocks: Block[]; groups: Group[]}
+  | {type: 'MOVE'; ids: string[]; dx: number; dy: number}
+  | {type: 'DRAG'; id: string; x: number; y: number}
   | {type: 'RENAME'; name: string}
   | {type: 'ADD_BLOCK'; block: Block; select?: boolean}
   | {type: 'UPDATE_BLOCK'; id: string; patch: Partial<Omit<Block, 'content' | 'style' | 'type'>>}
@@ -50,6 +53,24 @@ export function whiteboardReducer(state: WhiteboardState, action: WhiteboardActi
     case 'LOAD_BOARD':
       return {board: action.board, selectedIds: []};
 
+    case 'PASTE': {
+      const ids = new Map(action.blocks.map(b => [b.id, uid()]));
+      const groups = action.groups.map(g => ({...g, id: uid('g'), childIds: g.childIds.flatMap(id => ids.has(id) ? [ids.get(id)!] : [])})).filter(g => g.childIds.length);
+      const groupFor = new Map(groups.flatMap(g => g.childIds.map(id => [id, g.id] as const)));
+      const blocks = action.blocks.map(b => {
+        const id = ids.get(b.id)!;
+        return {...b, id, groupId: groupFor.get(id) ?? null, x:b.x+24, y:b.y+24};
+      });
+      return {board:touch(board,{blocks:[...board.blocks,...blocks],groups:[...board.groups,...groups]}), selectedIds:blocks.map(b=>b.id)};
+    }
+    case 'DRAG':
+    case 'MOVE': {
+      const anchor = action.type === 'DRAG' ? board.blocks.find(b => b.id === action.id) : undefined;
+      const dx = action.type === 'MOVE' ? action.dx : action.x - (anchor?.x ?? action.x);
+      const dy = action.type === 'MOVE' ? action.dy : action.y - (anchor?.y ?? action.y);
+      const ids = new Set(action.type === 'MOVE' ? action.ids : state.selectedIds);
+      return {...state, board:touch(board,{blocks:board.blocks.map(b => ids.has(b.id) && !b.locked && !b.hidden ? {...b,x:b.x+dx,y:b.y+dy} : b)})};
+    }
     case 'RENAME':
       return {...state, board: touch(board, {name: action.name})};
 
@@ -231,3 +252,4 @@ export function whiteboardReducer(state: WhiteboardState, action: WhiteboardActi
 }
 
 export {getUnits};
+

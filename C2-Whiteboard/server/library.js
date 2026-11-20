@@ -32,7 +32,7 @@ export function createLibrary(query) {
       const name = typeof username === 'string' ? username.trim().toLowerCase() : '';
       if (!/^[a-z0-9_-]{3,40}$/.test(name) || typeof password !== 'string' || password.length > 256 || !password.length)
         return fail(400, 'Enter a username of 3–40 letters, digits, underscores or hyphens, and a password.');
-      if (action === 'register' && password.length < 12) return fail(400, 'Choose a password of at least 12 characters.');
+      if (action === 'register' && password.length < 6) return fail(400, 'Choose a password of at least 6 characters.');
       const address = req.headers['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'local';
       await query('DELETE FROM wb_attempts WHERE expires <= now()', []);
       const [limit] = await query("INSERT INTO wb_attempts VALUES ($1,1,now()+interval '10 minutes') ON CONFLICT(bucket) DO UPDATE SET count=wb_attempts.count+1 RETURNING count", [digest(String(address))]);
@@ -66,6 +66,10 @@ export function createLibrary(query) {
     if (!user) return fail(401, 'Sign in to access your sheets.');
     if (action === 'list') return res.json({sheets: await query('SELECT id,name,modified FROM wb_sheets WHERE owner=$1 ORDER BY modified DESC', [user.id])});
     if (typeof id !== 'string' || !/^[\w-]{1,100}$/.test(id)) return fail(400, 'Invalid sheet identifier.');
+    if (action === 'delete') {
+      const [deleted] = await query('DELETE FROM wb_sheets WHERE owner=$1 AND id=$2 RETURNING id', [user.id, id]);
+      return deleted ? res.json({id: deleted.id}) : fail(404, 'Sheet not found.');
+    }
     if (action === 'open') {
       const [sheet] = await query('SELECT board,revision FROM wb_sheets WHERE owner=$1 AND id=$2', [user.id,id]);
       return sheet ? res.json(sheet) : fail(404, 'Sheet not found.');
@@ -81,5 +85,8 @@ export function createLibrary(query) {
     return saved ? res.json(saved) : fail(409, 'Another tab saved this sheet. Export your edits before reopening the latest version.');
   };
 }
+
+
+
 
 

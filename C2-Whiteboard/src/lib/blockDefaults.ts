@@ -1,3 +1,4 @@
+import {slotCapacity} from './slotRows';
 import {Dices, Heading, ImageIcon, List, Minus, ScrollText, Shield, Type, type LucideIcon} from 'lucide-react';
 import type {Block, BlockType, SpellLevelGroup} from '@/types';
 import {uid} from './utils';
@@ -5,6 +6,8 @@ import {uid} from './utils';
 export const BLOCK_LABELS: Record<BlockType, string> = {
   text: 'Text',
   heading: 'Heading',
+  spellSlots:'Spell Slots',
+  abilityScore: 'Ability Score',
   abilityScores: 'Ability Scores',
   statBlock: 'Stat',
   image: 'Image',
@@ -16,6 +19,8 @@ export const BLOCK_LABELS: Record<BlockType, string> = {
 export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   text: Type,
   heading: Heading,
+  spellSlots: Dices,
+  abilityScore: Shield,
   abilityScores: Dices,
   statBlock: Shield,
   image: ImageIcon,
@@ -45,6 +50,8 @@ export function deriveBlockName(block: Block): string {
       return block.content.title ? `Spells: ${truncate(block.content.title)}` : 'Spell List';
     case 'image':
       return block.content.alt ? `Image: ${truncate(block.content.alt)}` : 'Image';
+    case 'spellSlots': return 'Spell Slots';
+    case 'abilityScore': return block.content.ability || 'Ability Score';
     case 'abilityScores':
       return 'Ability Scores';
     case 'divider':
@@ -134,6 +141,9 @@ export function createBlock(type: BlockType, x: number, y: number): Block {
         style: {fontSize: 34, align: 'left'},
         content: {text: 'Character Name', subtitle: 'Level 1 · Species · Class'},
       };
+    case 'spellSlots': return {...base,type,width:580,height:182,style:{showBorder:true},content:{rows:slotCapacity.map(n=>({total:0,used:Array(n).fill(false)}))}};
+    case 'abilityScore':
+      return {...base,type,width:294,height:276,style:{showBorder:true},content:{ability:'',modifier:'',saveDc:'',attackBonus:''}};
     case 'abilityScores':
       return {
         ...base,
@@ -179,7 +189,7 @@ export function createBlock(type: BlockType, x: number, y: number): Block {
         content: {
           title: 'Inventory & Gear',
           ordered: false,
-          items: ['Backpack', 'Rations (5 days)', 'Torch or lantern', '50 ft. rope', 'Coin pouch'],
+          items: ['Backpack'],
         },
       };
     case 'spellList':
@@ -245,3 +255,14 @@ export function createBlock(type: BlockType, x: number, y: number): Block {
       };
   }
 }
+
+
+
+
+
+
+
+
+
+
+

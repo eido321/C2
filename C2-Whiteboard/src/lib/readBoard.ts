@@ -1,3 +1,4 @@
+import {slotCapacity} from '@/lib/slotRows';
 import {z} from 'zod';
 import type {Whiteboard} from '@/types';
 import {normalizeBoard} from './board';
@@ -34,6 +35,8 @@ const contents = {
   divider: z.looseObject({ornament: z.boolean()}),
   image: z.looseObject({src: text, fit: z.enum(['cover', 'contain']), alt: optionalText}),
   list: z.looseObject({title: optionalText, items: z.array(listItem), ordered: z.boolean(), checklist: flag}),
+  spellSlots: z.object({rows:z.array(z.object({total:z.number().int().min(0),used:z.array(z.boolean())})).length(9).refine(rows=>rows.every((r,i)=>r.total<=slotCapacity[i] && r.used.length===slotCapacity[i]))}),
+  abilityScore: z.looseObject({ability:text,modifier:text,saveDc:text,attackBonus:text}),
   abilityScores: z.looseObject({abilities: z.array(z.object({key: text, label: text, score: number}))}),
   spellList: z.looseObject({
     title: optionalText,
@@ -98,3 +101,6 @@ export function readBoard(value: unknown): Whiteboard {
     name: result.data.name ?? 'Imported Whiteboard',
   } as Whiteboard);
 }
+
+
+

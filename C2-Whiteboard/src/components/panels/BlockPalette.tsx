@@ -7,6 +7,8 @@ import {cn} from '@/lib/utils';
 const PALETTE: {type: BlockType; label: string; desc: string}[] = [
   {type: 'heading', label: 'Heading', desc: 'Title & subtitle'},
   {type: 'text', label: 'Text', desc: 'Notes & paragraphs'},
+  {type:'spellSlots',label:'Spell Slots',desc:'Track total and expended slots'},
+  {type:'abilityScore',label:'Ability Score',desc:'Spellcasting modifier, DC & attack'},
   {type: 'abilityScores', label: 'Ability Scores', desc: 'STR–CHA + modifiers'},
   {type: 'statBlock', label: 'Stat', desc: 'AC, HP, Speed…'},
   {type: 'list', label: 'List', desc: 'Inventory / features'},
@@ -61,3 +63,5 @@ export function BlockPalette({onAdd}: Props) {
     </div>
   );
 }
+
+

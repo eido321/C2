@@ -7,7 +7,7 @@ export function DividerBlock({block}: BlockViewProps<'divider'>) {
       {ornament ? (
         <div className="flex w-full items-center gap-2 text-gold">
           <span className="h-px flex-1 bg-gradient-to-r from-transparent to-gold/70" />
-          <span className="text-lg leading-none">&#10022;</span>
+          <span className="text-[var(--block-font,18px)] leading-none">&#10022;</span>
           <span className="h-px flex-1 bg-gradient-to-l from-transparent to-gold/70" />
         </div>
       ) : (
@@ -16,3 +16,4 @@ export function DividerBlock({block}: BlockViewProps<'divider'>) {
     </div>
   );
 }
+

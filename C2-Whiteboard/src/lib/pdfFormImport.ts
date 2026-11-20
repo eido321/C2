@@ -1,3 +1,4 @@
+import {setSlotTotal} from '@/lib/slotRows';
 import {PDFCheckBox, PDFTextField, type PDFDocument} from 'pdf-lib';
 import type {Whiteboard} from '@/types';
 import {listItemText, withListItemChecked, withListItemText} from './listContent';
@@ -47,6 +48,13 @@ export function applyPdfFields(pdf: PDFDocument, board: Whiteboard): Whiteboard 
       case 'statBlock':
         strings(block.content, ['label', 'value', 'hint']);
         break;
+      case 'spellSlots':
+        block.content.rows=block.content.rows.map((row,i)=>{
+          const value=text('total'+i);
+          return setSlotTotal({...row,used:row.used.map((v,k)=>checked('used'+i+'_'+k)??v)},i,value===''?0:integer('total'+i,row.total));
+        });
+        break;
+      case 'abilityScore': strings(block.content,['ability','modifier','saveDc','attackBonus']); break;
       case 'abilityScores':
         for (const ability of block.content.abilities) ability.score = integer(ability.key, ability.score);
         break;
@@ -91,3 +99,6 @@ export function applyPdfFields(pdf: PDFDocument, board: Whiteboard): Whiteboard 
   }
   return board;
 }
+
+
+

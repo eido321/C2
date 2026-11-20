@@ -1,15 +1,16 @@
-import {createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode} from 'react';
+import {createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode} from 'react';
 import type {Block, Viewport, Whiteboard} from '@/types';
 import {WHITEBOARD_SCHEMA_VERSION} from '@/types';
 import {saveSheet, type CloudSheet} from '@/lib/library';
 import {loadWhiteboard, saveWhiteboard} from '@/lib/persistence';
-import {whiteboardReducer, type WhiteboardAction, type WhiteboardState} from './reducer';
+import type {WhiteboardState} from './reducer';
+import {reduceHistory, type EditorAction} from './history';
 
 export type SaveStatus = 'saving' | 'device' | 'cloud' | 'error';
 
 interface WhiteboardContextValue {
   state: WhiteboardState;
-  dispatch: React.Dispatch<WhiteboardAction>;
+  dispatch: React.Dispatch<EditorAction>;
   saveStatus: SaveStatus;
   saveError: string;
   retrySave: () => void;
@@ -39,7 +40,23 @@ interface ProviderProps {
 }
 
 export function WhiteboardProvider({initialBoard, cloud, children}: ProviderProps) {
-  const [state, dispatch] = useReducer(whiteboardReducer, {board: initialBoard, selectedIds: []});
+  const [history, send] = useReducer(reduceHistory, {current:{board:initialBoard,selectedIds:[]},past:[],future:[],gesture:null});
+  const state = history.current;
+  const gesture = useRef<number|null>(null);
+  useEffect(() => {
+    let sequence = 0;
+    const begin = () => { gesture.current = ++sequence; };
+    const end = () => { gesture.current = null; };
+    window.addEventListener('pointerdown',begin,true);
+    window.addEventListener('pointerup',end);
+    window.addEventListener('pointercancel',end);
+    return () => {
+      window.removeEventListener('pointerdown',begin,true);
+      window.removeEventListener('pointerup',end);
+      window.removeEventListener('pointercancel',end);
+    };
+  }, []);
+  const dispatch = useCallback((action: EditorAction) => send({action,gesture:gesture.current}), []);
   const [persisted, setPersisted] = useState<Whiteboard | null>(cloud ? initialBoard : null);
   const [saveError, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -102,4 +119,5 @@ export function useViewport(): Viewport {
 }
 
 export {loadWhiteboard};
+
 
