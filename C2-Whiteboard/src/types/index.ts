@@ -95,6 +95,8 @@ export interface SpellEntry {
   id: string;
   prepared: boolean;
   name: string;
+  /** When set, overrides the list's visible fields for this spell. */
+  columns?: SpellColumn[];
   expanded?: boolean;
   school?: string;
   castingTime?: string;

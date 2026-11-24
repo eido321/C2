@@ -87,7 +87,7 @@ export function applyPdfFields(pdf: PDFDocument, board: Whiteboard): Whiteboard 
             const prefix = 'spell.' + spell.id + '.';
             strings(spell, ['name'], prefix);
             const description = text(prefix + 'description');
-            if (description !== undefined && description !== (spell.description || spell.notes || '')) {
+            if (description !== undefined && description !== (spell.description ?? spell.notes ?? '')) {
               spell.description = description;
               if (!description) spell.notes = '';
             }

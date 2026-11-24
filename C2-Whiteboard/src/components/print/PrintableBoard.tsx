@@ -46,6 +46,7 @@ function PrintableBlock({block, originX, originY}: {block: Block; originX: numbe
         <BlockContent
           block={block}
           editing={false}
+          printable
           update={noop as (content: Partial<BlockContentMap[Block['type']]>) => void}
         />
       </div>

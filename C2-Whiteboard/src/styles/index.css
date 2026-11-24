@@ -180,6 +180,45 @@
 .slot-column small { font-size:calc(var(--block-font,2.6cqw) * 2 / 2.6); text-align:center; }
 .slot-total,.slot-column input { width:100%; min-width:0; font-size:calc(var(--block-font,2.6cqw) * 3 / 2.6); }
 .slot-marks { display:flex; align-items:center; color:var(--color-accent); }
+
+.spell-control {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.8em;
+  min-height: 1.8em;
+  border: 1px solid color-mix(in srgb, var(--color-gold) 40%, transparent);
+  border-radius: 0.375rem;
+  background: rgb(255 255 255 / 50%);
+  color: var(--color-accent);
+}
+
+.spell-control:enabled:hover { background: rgb(255 255 255 / 85%); }
+.spell-control:disabled { opacity: 0.4; }
+
+.spell-scrollbar {
+  --spell-scroll-thumb: color-mix(in srgb, var(--color-gold) 70%, var(--color-accent));
+  scrollbar-width: thin;
+  scrollbar-color: var(--spell-scroll-thumb) var(--color-parchment-deep);
+  scrollbar-gutter: stable;
+}
+
+@supports not (scrollbar-color: red blue) {
+  .spell-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+  .spell-scrollbar::-webkit-scrollbar-track { background: var(--color-parchment-deep); }
+  .spell-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--spell-scroll-thumb);
+  }
+}
+
+.spell-tag {
+  flex-shrink: 0;
+  border-radius: 0.25rem;
+  padding: 0.15em 0.4em;
+  background: var(--color-parchment-deep);
+  color: var(--color-accent);
+  font: 700 0.7em var(--font-sans);
+}
 .slot-marks button { font-size:calc(var(--block-font,2.6cqw) * 3.3 / 2.6); line-height:1; cursor:pointer; }
 .slot-marks button:disabled { opacity:.38; cursor:default; }
 

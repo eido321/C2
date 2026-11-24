@@ -13,6 +13,7 @@ import {TextBlock} from './TextBlock';
 interface Props {
   block: Block;
   editing: boolean;
+  printable?: boolean;
   update: (content: Partial<BlockContentMap[Block['type']]>) => void;
 }
 
@@ -24,7 +25,7 @@ export function BlockContent(props: Props) {
   </div>;
 }
 
-function Content({block, editing, update}: Props) {
+function Content({block, editing, printable, update}: Props) {
   switch (block.type) {
     case 'text':
       return <TextBlock block={block} editing={editing} update={update} />;
@@ -43,7 +44,7 @@ function Content({block, editing, update}: Props) {
     case 'list':
       return <ListBlock block={block} editing={editing} update={update} />;
     case 'spellList':
-      return <SpellListBlock block={block} editing={editing} update={update} />;
+      return <SpellListBlock block={block} editing={editing} printable={printable} update={update} />;
   }
 }
 

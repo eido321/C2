@@ -13,6 +13,7 @@ const spell = z.looseObject({
   id: text,
   name: text,
   prepared: z.boolean(),
+  columns: z.array(text).optional(),
   expanded: flag,
   school: optionalText,
   castingTime: optionalText,

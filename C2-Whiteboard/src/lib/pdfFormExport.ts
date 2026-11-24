@@ -47,7 +47,8 @@ function horizontalOverlap(a: PdfLayoutBlock, b: PdfLayoutBlock): boolean {
   return a.x < b.x + b.width && b.x < a.x + a.width;
 }
 
-function spellMetaLine(spell: SpellEntry, columns: SpellColumn[]): string {
+function spellMetaLine(spell: SpellEntry, defaultColumns: SpellColumn[]): string {
+  const columns = spell.columns ?? defaultColumns;
   const parts: string[] = [];
   if (columns.includes('school') && spell.school) parts.push(`School: ${spell.school}`);
   if (columns.includes('castingTime') && spell.castingTime) parts.push(`Cast: ${spell.castingTime}`);
@@ -57,6 +58,9 @@ function spellMetaLine(spell: SpellEntry, columns: SpellColumn[]): string {
   if (columns.includes('duration') && spell.duration) parts.push(`Dur: ${spell.duration}`);
   if (columns.includes('attackSave') && spell.attackSave) parts.push(`Roll: ${spell.attackSave}`);
   if (columns.includes('damageEffect') && spell.damageEffect) parts.push(`Effect: ${spell.damageEffect}`);
+  if (columns.includes('source') && spell.source) parts.push(`Src: ${spell.source}`);
+  if (columns.includes('concentration') && spell.concentration) parts.push('Concentration');
+  if (columns.includes('ritual') && spell.ritual) parts.push('Ritual');
   return parts.join(' · ');
 }
 
@@ -309,7 +313,7 @@ function addSpellListFields(ctx: PdfFormContext, layout: PdfLayoutBlock): void {
         cursor + 10,
         width - 16,
         40,
-        spell.description || spell.notes || '',
+        spell.description ?? spell.notes ?? '',
         true,
         8,
       );

@@ -7,6 +7,7 @@ export interface BlockViewProps<T extends BlockType> {
 }
 
 const ORDINAL = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+export const SPELL_LEVELS = Array.from({length: ORDINAL.length + 1}, (_, level) => level);
 
 /** Human label for a spell level: 0 → "Cantrips", 1 → "1st Level", … */
 export function spellLevelLabel(level: number): string {

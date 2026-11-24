@@ -31,6 +31,7 @@ function spellMeta(spell: SpellEntry, columns: SpellColumn[]): string {
   if (columns.includes('duration') && spell.duration) parts.push(`<span class="meta"><b>Dur</b> ${escapeHtml(spell.duration)}</span>`);
   if (columns.includes('attackSave') && spell.attackSave) parts.push(`<span class="meta"><b>Roll</b> ${escapeHtml(spell.attackSave)}</span>`);
   if (columns.includes('damageEffect') && spell.damageEffect) parts.push(`<span class="meta"><b>Effect</b> ${escapeHtml(spell.damageEffect)}</span>`);
+  if (columns.includes('source') && spell.source) parts.push(`<span class="meta"><b>Src</b> ${escapeHtml(spell.source)}</span>`);
   return parts.join('');
 }
 
@@ -38,7 +39,6 @@ function renderSpellList(block: Block, blockIndex: number): string {
   if (block.type !== 'spellList') return '';
   const {content, style} = block;
   const fontSize = style?.fontSize ?? 14;
-  const columns = content.columns ?? [];
   const groups = content.groups ?? [];
 
   const header = content.showHeader
@@ -53,11 +53,12 @@ function renderSpellList(block: Block, blockIndex: number): string {
     .map((group, groupIndex) => {
       const spells = group.spells
         .map((spell, spellIndex) => {
+          const columns = spell.columns ?? content.columns ?? [];
           const gi = groupIndex;
           const si = spellIndex;
           const base = `blocks.${blockIndex}.content.groups.${gi}.spells.${si}`;
           const expanded = spell.expanded ?? false;
-          const description = spell.description || spell.notes || '';
+          const description = spell.description ?? spell.notes ?? '';
           const meta = spellMeta(spell, columns);
           const preparedBtn =
             group.level > 0
@@ -358,7 +359,7 @@ function bindAction(el) {
           details = document.createElement('div');
           details.className = 'spell-details';
           const base = 'blocks.' + bi + '.content.groups.' + gi + '.spells.' + si;
-          const desc = spell.description || spell.notes || '';
+          const desc = spell.description ?? spell.notes ?? '';
           details.innerHTML = '<span class="detail-label">Description</span><textarea data-path="' + base + '.description" rows="3" placeholder="Spell description..."></textarea>';
           row.appendChild(details);
           const ta = details.querySelector('textarea');

@@ -483,6 +483,111 @@ test('clipboard and dropped image files persist as image blocks', async t => {
 });
 
 
+test('spell levels and display settings can be changed for individual spells', async (t) => {
+  const p = await open(t);
+  await button(p, /Blank canvas/).click();
+  await button(p, /^Spell List Spells/).click();
+  const pane = p.locator('aside').last();
+  const spell = (name) => pane.getByRole('group', {name, exact: true});
+  const canvas = p.locator('main');
+  const card = (name) => canvas.getByRole('article', {name, exact: true});
+
+  await button(spell('Magic Missile'), 'Edit Magic Missile').click();
+  await spell('Magic Missile').getByLabel('Spell level').selectOption({label: '9th Level'});
+  const ninthLevel = pane.getByRole('group', {name: '9th Level', exact: true});
+  const firstLevel = pane.getByRole('group', {name: '1st Level', exact: true});
+  assert.equal(await ninthLevel.getByPlaceholder('Spell name').inputValue(), 'Magic Missile');
+  assert.equal(await firstLevel.getByPlaceholder('Spell name').inputValue(), 'Shield');
+
+  await pane.getByLabel('New spell level').selectOption({label: '5th Level'});
+  await button(pane, 'Add level').click();
+  const fifthLevel = pane.getByRole('group', {name: '5th Level', exact: true});
+  await button(fifthLevel, 'Add spell').click();
+  await fifthLevel.getByPlaceholder('Spell name').fill('Starlight');
+
+  const fireBolt = spell('Fire Bolt');
+  await button(fireBolt, 'Edit Fire Bolt').click();
+  await fireBolt.getByLabel('Use list display settings').uncheck();
+  await button(fireBolt, 'Range').click();
+  assert.equal(await card('Fire Bolt').getByText('120 ft', {exact: false}).count(), 0);
+  assert.equal(await card('Mage Hand').getByText('30 ft', {exact: false}).count(), 1);
+
+  await fireBolt.getByText('Spell details', {exact: true}).click();
+  await fireBolt.getByLabel('Range', {exact: true}).fill('150 ft');
+  await button(fireBolt, 'Range').click();
+  await pane.getByText('Spell List settings', {exact: true}).click();
+  await pane.getByText('List display settings', {exact: true}).click();
+  await button(pane, 'Compact').click();
+  assert.equal(await card('Fire Bolt').getByText('150 ft', {exact: false}).count(), 1);
+  assert.equal(await card('Mage Hand').getByText('30 ft', {exact: false}).count(), 0);
+
+  await saved(p);
+  const block = (await draft(p)).blocks.find((b) => b.type === 'spellList');
+  assert.deepEqual(block.content.groups.map((group) => group.level), [0, 1, 5, 9]);
+  assert.deepEqual(block.content.groups[0].spells.map((entry) => entry.range), ['150 ft', '30 ft']);
+  assert.equal(block.content.groups[0].spells[1].columns, undefined);
+
+  const pdf = await PDFDocument.load(await download(p, 'Export PDF'));
+  const fireBoltId = block.content.groups[0].spells[0].id;
+  assert.match(pdf.getForm().getTextField(`${block.id}.spell.${fireBoltId}.meta`).getText(), /Range: 150 ft/);
+  await canvas.getByText('Spells', {exact: true}).click();
+  await button(fireBolt, 'Edit Fire Bolt').click();
+  await fireBolt.getByLabel('Use list display settings').check();
+  assert.equal(await card('Fire Bolt').getByText('150 ft', {exact: false}).count(), 0);
+
+  await canvas.getByText('Spells', {exact: true}).dblclick();
+  await canvas.getByLabel('Add spell level').selectOption({label: '7th Level'});
+  await pane.getByRole('group', {name: '7th Level', exact: true}).waitFor();
+});
+
+test('the spellbook adds catalog and custom spells and tracks preparation and slots from the canvas', async (t) => {
+  const p = await open(t);
+  await button(p, /Blank canvas/).click();
+  await button(p, /^Spell List Spells/).click();
+  const canvas = p.locator('main');
+  const picker = p.getByRole('dialog', {name: 'Add spells'});
+  const level = canvas.getByLabel('Filter spells by level');
+
+  await button(canvas, 'Add spell').click();
+  await picker.getByLabel('Catalog spell level').selectOption({label: '9th Level'});
+  await picker.getByLabel('Spellcasting class').selectOption('Wizard');
+  await picker.getByLabel('Search spell catalog').fill('Meteor Swarm');
+  await button(picker, 'Add Meteor Swarm').click();
+  assert.equal(await button(picker, 'Added Meteor Swarm').getAttribute('aria-disabled'), 'true');
+  await button(picker, 'Done').click();
+  await level.selectOption({label: '9th Level'});
+  assert.equal(await canvas.getByRole('article', {name: 'Meteor Swarm'}).count(), 1);
+  await button(canvas, 'Prepare Meteor Swarm').click();
+  await button(canvas, 'Prepared').click();
+  await canvas.getByText('No spells match these filters.').waitFor();
+  await button(canvas, 'Prepared').click();
+
+  await level.selectOption({label: '1st Level'});
+  await button(canvas, 'Spend 1st Level slot').click();
+  assert.equal(await canvas.getByTitle('Slots remaining').textContent(), '1/2 slots');
+  await button(canvas, 'Restore all spell slots').click();
+  assert.equal(await canvas.getByTitle('Slots remaining').textContent(), '2/2 slots');
+
+  await button(canvas, 'Add spell').click();
+  await button(picker, 'Custom spell').click();
+  await picker.getByLabel('Spell name').fill('Echo Ward');
+  await picker.getByLabel('Spell level').selectOption({label: '4th Level'});
+  await button(picker, 'Add custom spell').click();
+  await canvas.getByRole('article', {name: 'Echo Ward'}).waitFor();
+  await level.selectOption({label: 'All levels'});
+  await button(canvas, 'Search your spells').click();
+  await canvas.getByLabel('Search your spells').fill('Echo');
+  assert.deepEqual(await canvas.getByRole('article').evaluateAll((items) => items.map((item) => item.getAttribute('aria-label'))), ['Echo Ward']);
+
+  await saved(p);
+  await p.reload();
+  await saved(p);
+  await level.selectOption({label: '9th Level'});
+  assert.equal(await button(canvas, 'Prepare Meteor Swarm').getAttribute('aria-pressed'), 'false');
+  await level.selectOption({label: '4th Level'});
+  await canvas.getByRole('article', {name: 'Echo Ward'}).waitFor();
+});
+
 test('font slider scales rendered list and spell titles and persists', async t => {
   const p = await open(t);
   await button(p,/Blank canvas/).click();

@@ -1,438 +1,273 @@
-import {useEffect, useRef, useState, type KeyboardEvent, type WheelEvent} from 'react';
-import {Check, ChevronDown, ChevronRight, Plus, X} from 'lucide-react';
-import type {SpellComponents, SpellEntry, SpellLevelGroup} from '@/types';
-import {cn, uid} from '@/lib/utils';
-import {componentsLabel, spellLevelLabel, type BlockViewProps} from './shared';
+import {useRef, useState, type PointerEvent} from 'react';
+import {Check, ChevronDown, Minus, Plus, RotateCcw, Search, X} from 'lucide-react';
+import type {SpellColumn, SpellEntry, SpellLevelGroup, SpellListContent} from '@/types';
+import {makeSpellGroup} from '@/lib/blockDefaults';
+import {addSpellToLevel, slotCount} from '@/lib/spellList';
+import {cn} from '@/lib/utils';
+import {componentsLabel, SPELL_COLUMN_LABELS, SPELL_LEVELS, spellLevelLabel, type BlockViewProps} from './shared';
+import {SpellPicker} from './SpellPicker';
 
-function SummaryCell({label, value}: {label: string; value: string}) {
+const summaryFields = [
+  {key: 'ability', label: 'Ability'},
+  {key: 'saveDc', label: 'Save DC'},
+  {key: 'attackBonus', label: 'Spell Atk'},
+] as const;
+
+function stopCanvasDrag(event: PointerEvent) {
+  if (event.button === 0) event.stopPropagation();
+}
+
+function SpellSummary({content, editing, update}: {content: SpellListContent; editing: boolean; update: BlockViewProps<'spellList'>['update']}) {
   return (
-    <div className="flex flex-1 flex-col items-center rounded-lg border border-gold/40 bg-white/35 px-2 py-1.5 shadow-sm">
-      <span className="font-display text-[0.643em] font-bold uppercase tracking-wide text-accent">{label}</span>
-      <span className="font-serif text-[1em] font-bold text-slate-800">{value || '—'}</span>
+    <div className="grid grid-cols-3 divide-x divide-gold/30 overflow-hidden rounded-lg border border-gold/35 bg-white/45">
+      {summaryFields.map(({key, label}) => (
+        <div key={key} className="min-w-0 px-2 py-1 text-center">
+          <div className="font-sans text-[0.68em] font-semibold uppercase tracking-wide text-accent">{label}</div>
+          {editing ? (
+            <input aria-label={label} value={content[key] ?? ''} onChange={(e) => update({[key]: e.target.value})} onPointerDown={stopCanvasDrag} className="w-full rounded bg-white/45 text-center font-semibold outline-accent" />
+          ) : (
+            <div className="break-words font-semibold text-ink">{content[key] || '—'}</div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
 
-function SlotPips({
-  total,
-  expended,
-  editing,
-  onChange,
-}: {
-  total: number;
-  expended: number;
-  editing: boolean;
-  onChange?: (expended: number) => void;
-}) {
-  if (total <= 0) return null;
+function SlotTracker({group, editing, onChange}: {group: SpellLevelGroup; editing: boolean; onChange?: (patch: Partial<SpellLevelGroup>) => void}) {
+  const total = slotCount(group.slotsTotal);
+  const expended = Math.min(total, slotCount(group.slotsExpended));
+  const remaining = total - expended;
+
   return (
-    <span className="flex items-center gap-1" onPointerDown={editing ? (e) => e.stopPropagation() : undefined}>
-      {Array.from({length: total}, (_, i) => (
-        <button
-          key={i}
-          type="button"
-          disabled={!editing}
-          onClick={() => {
-            if (!editing || !onChange) return;
-            const next = i + 1 === expended ? i : i + 1;
-            onChange(next);
+    <div className="flex shrink-0 flex-wrap items-center gap-1 font-sans text-[0.75em] text-ink-soft" onPointerDown={onChange ? stopCanvasDrag : undefined}>
+      {onChange && total > 0 && (
+        <button type="button" className="spell-control" disabled={remaining === 0} aria-label={`Spend ${spellLevelLabel(group.level)} slot`} title="Spend a slot" onClick={() => onChange({slotsExpended: expended + 1})}>
+          <Minus size="1em" />
+        </button>
+      )}
+      <span className="whitespace-nowrap tabular-nums" title="Slots remaining">{remaining}/{total} slots</span>
+      {onChange && total > 0 && (
+        <button type="button" className="spell-control" disabled={expended === 0} aria-label={`Recover ${spellLevelLabel(group.level)} slot`} title="Recover a slot" onClick={() => onChange({slotsExpended: expended - 1})}>
+          <Plus size="1em" />
+        </button>
+      )}
+      {editing && onChange && (
+        <input
+          type="number"
+          min={0}
+          value={total}
+          aria-label={`${spellLevelLabel(group.level)} total slots`}
+          title="Total slots"
+          className="w-10 rounded border border-gold/40 bg-white/55 px-1 text-center tabular-nums"
+          onChange={(e) => {
+            const slotsTotal = slotCount(e.target.value);
+            onChange({slotsTotal, slotsExpended: Math.min(expended, slotsTotal)});
           }}
-          className={cn(
-            'h-3.5 w-3.5 rounded-full border transition-colors',
-            i < expended ? 'border-accent bg-accent shadow-sm' : 'border-gold/60 bg-white/40',
-            editing ? 'cursor-pointer hover:border-accent hover:bg-accent/20' : 'cursor-default',
-          )}
-          title={i < expended ? 'Slot expended' : 'Slot available'}
         />
-      ))}
-    </span>
+      )}
+    </div>
   );
 }
 
-const DEFAULT_COMPONENTS: SpellComponents = {v: true, s: true, m: false};
+function SpellCard({spell, level, columns, editing, onChange, onRemove}: {
+  spell: SpellEntry;
+  level: number;
+  columns: SpellColumn[];
+  editing: boolean;
+  onChange?: (patch: Partial<SpellEntry>) => void;
+  onRemove?: () => void;
+}) {
+  const name = spell.name || 'Unnamed spell';
+  const description = spell.description ?? spell.notes ?? '';
+  const expanded = spell.expanded ?? false;
+  const [expandedReadOnly, setExpandedReadOnly] = useState<boolean | null>(null);
+  const showDetails = onChange ? expanded : expandedReadOnly ?? expanded;
+  const values = {
+    school: spell.school,
+    castingTime: spell.castingTime,
+    range: spell.range,
+    components: componentsLabel(spell.components),
+    duration: spell.duration,
+    attackSave: spell.attackSave,
+    damageEffect: spell.damageEffect,
+    source: spell.source,
+  };
+  const fields = (Object.keys(values) as (keyof typeof values)[]).filter((key) => columns.includes(key) && values[key]);
 
-function createSpell(name = ''): SpellEntry {
-  return {id: uid('sp'), prepared: true, name, components: {...DEFAULT_COMPONENTS}};
+  return (
+    <article aria-label={name} className="min-w-0 rounded-lg border border-gold/25 bg-white/50 px-2.5 py-2">
+      <div className="flex min-w-0 items-start gap-2">
+        {level > 0 && (
+          <button
+            type="button"
+            aria-label={`Prepare ${name}`}
+            aria-pressed={spell.prepared}
+            title={spell.prepared ? 'Prepared' : 'Unprepared'}
+            disabled={!onChange}
+            onPointerDown={stopCanvasDrag}
+            onClick={() => onChange?.({prepared: !spell.prepared})}
+            className={cn('mt-0.5 grid size-5 shrink-0 place-items-center rounded border', spell.prepared ? 'border-accent bg-accent text-white' : 'border-gold/65 bg-white/65', onChange && 'cursor-pointer hover:ring-2 hover:ring-accent/25')}
+          >
+            {spell.prepared && <Check size={12} strokeWidth={3} />}
+          </button>
+        )}
+        {editing ? (
+          <textarea aria-label="Spell name" rows={1} value={spell.name} onPointerDown={stopCanvasDrag} onChange={(e) => onChange?.({name: e.target.value})} className="field-sizing-content min-w-0 flex-1 resize-none rounded bg-white/70 px-1.5 font-semibold outline-accent" />
+        ) : (
+          <span className="min-w-0 flex-1 whitespace-pre-wrap break-words font-semibold leading-snug text-ink">{name}</span>
+        )}
+        {columns.includes('concentration') && spell.concentration && <span className="spell-tag" title="Concentration">C</span>}
+        {columns.includes('ritual') && spell.ritual && <span className="spell-tag" title="Ritual">R</span>}
+        {(description || editing || showDetails) && (
+          <button
+            type="button"
+            aria-label={`Details for ${name}`}
+            aria-expanded={showDetails}
+            className="spell-control shrink-0"
+            onPointerDown={stopCanvasDrag}
+            onClick={() => onChange ? onChange({expanded: !showDetails}) : setExpandedReadOnly(!showDetails)}
+          >
+            <ChevronDown size="1em" className={cn(showDetails && 'rotate-180')} />
+          </button>
+        )}
+        {onRemove && (
+          <button type="button" aria-label={`Remove ${name}`} title="Remove spell" className="spell-control shrink-0" onPointerDown={stopCanvasDrag} onClick={onRemove}>
+            <X size="1em" />
+          </button>
+        )}
+      </div>
+      {fields.length > 0 && (
+        <dl className="mt-1 flex flex-wrap gap-x-2.5 gap-y-1 font-sans text-[0.75em] text-ink-soft">
+          {fields.map((key) => (
+            <div key={key} className="min-w-0 break-words">
+              <dt className="mr-1 inline font-semibold text-accent">{SPELL_COLUMN_LABELS[key]}</dt>
+              <dd className="inline">{values[key]}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {showDetails && (description || editing) && (
+        <div className="mt-2 border-t border-gold/30 pt-2">
+          {editing ? (
+            <textarea aria-label="Spell description" rows={3} value={description} onPointerDown={stopCanvasDrag} onChange={(e) => onChange?.({description: e.target.value})} className="w-full resize-y rounded border border-gold/35 bg-white/55 p-1.5 text-[0.9em] outline-accent" />
+          ) : (
+            <p className="whitespace-pre-wrap break-words text-[0.9em] leading-relaxed text-ink-soft">{description}</p>
+          )}
+        </div>
+      )}
+    </article>
+  );
 }
 
-function resizeTextarea(el: HTMLTextAreaElement | null) {
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = `${el.scrollHeight}px`;
-}
-
-function safeNumber(value: string, max?: number): number {
-  const next = Math.max(0, Number(value) || 0);
-  return max === undefined ? next : Math.min(next, max);
-}
-
-function canScrollInDirection(el: HTMLElement, deltaX: number, deltaY: number): boolean {
-  const maxTop = el.scrollHeight - el.clientHeight;
-  const maxLeft = el.scrollWidth - el.clientWidth;
-  const canScrollY = maxTop > 1 && ((deltaY < 0 && el.scrollTop > 0) || (deltaY > 0 && el.scrollTop < maxTop));
-  const canScrollX = maxLeft > 1 && ((deltaX < 0 && el.scrollLeft > 0) || (deltaX > 0 && el.scrollLeft < maxLeft));
-  return canScrollY || canScrollX;
-}
-
-export function SpellListBlock({block, editing, update}: BlockViewProps<'spellList'>) {
+export function SpellListBlock({block, editing, update, printable}: BlockViewProps<'spellList'> & {printable?: boolean}) {
   const {content, style} = block;
-  const fontSize = style?.fontSize ?? 14;
-  const columns = content.columns ?? [];
   const groups = content.groups ?? [];
-  const rowRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
-  const notesRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
-  const [focusSpellId, setFocusSpellId] = useState<string | null>(null);
+  const canChange = !printable && !block.locked;
+  const canEdit = editing && canChange;
+  const [level, setLevel] = useState<number | null>(null);
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [preparedOnly, setPreparedOnly] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const scrollArea = useRef<HTMLDivElement>(null);
+  const term = query.trim().toLowerCase();
+  const visibleGroups = groups
+    .filter((group) => level === null || group.level === level)
+    .map((group) => ({
+      group,
+      spells: group.spells.filter((spell) => (!preparedOnly || group.level === 0 || spell.prepared) && (!term || spell.name.toLowerCase().includes(term))),
+    }))
+    .filter(({spells}) => spells.length > 0 || (!term && !preparedOnly));
+  const availableLevels = SPELL_LEVELS.filter((value) => !groups.some((group) => group.level === value));
+  const canRestore = groups.some((group) => group.level > 0 && group.slotsExpended > 0);
 
-  useEffect(() => {
-    groups.forEach((group) => {
-      group.spells.forEach((spell) => {
-        resizeTextarea(rowRefs.current[spell.id]);
-        resizeTextarea(notesRefs.current[spell.id]);
-      });
-    });
-  }, [groups]);
-
-  useEffect(() => {
-    if (!focusSpellId) return;
-    const el = rowRefs.current[focusSpellId];
-    if (!el) return;
-    el.focus();
-    el.setSelectionRange(el.value.length, el.value.length);
-    setFocusSpellId(null);
-  }, [focusSpellId, groups]);
-
-  const setGroups = (groups: SpellLevelGroup[]) => update({groups});
-  const patchGroup = (groupId: string, patch: Partial<SpellLevelGroup>) =>
-    setGroups(groups.map((g) => (g.id === groupId ? {...g, ...patch} : g)));
-  const patchSpell = (groupId: string, spellId: string, patch: Partial<SpellEntry>) =>
-    setGroups(
-      groups.map((g) =>
-        g.id === groupId
-          ? {...g, spells: g.spells.map((s) => (s.id === spellId ? {...s, ...patch} : s))}
-          : g,
-      ),
-    );
-  const patchSlotsTotal = (groupId: string, total: number) =>
-    setGroups(groups.map((g) => (g.id === groupId ? {...g, slotsTotal: total, slotsExpended: Math.min(g.slotsExpended, total)} : g)));
-
-  const addSpellAfter = (groupId: string, index: number, name = '') => {
-    const nextSpell = createSpell(name);
-    setGroups(
-      groups.map((g) => {
-        if (g.id !== groupId) return g;
-        const spells = [...g.spells];
-        spells.splice(index + 1, 0, nextSpell);
-        return {...g, spells};
-      }),
-    );
-    setFocusSpellId(nextSpell.id);
+  const updateGroup = (id: string, change: (group: SpellLevelGroup) => SpellLevelGroup) =>
+    update({groups: groups.map((group) => group.id === id ? change(group) : group)});
+  const pickLevel = (value: number | null) => {
+    setLevel(value);
+    scrollArea.current?.scrollTo({top: 0});
   };
-
-  const removeSpell = (groupId: string, spellId: string) => {
-    const group = groups.find((g) => g.id === groupId);
-    const index = group?.spells.findIndex((s) => s.id === spellId) ?? -1;
-    setGroups(groups.map((g) => (g.id === groupId ? {...g, spells: g.spells.filter((s) => s.id !== spellId)} : g)));
-    const fallback = group?.spells[index - 1] ?? group?.spells[index + 1];
-    if (fallback) setFocusSpellId(fallback.id);
-  };
-
-  const metaFor = (spell: SpellEntry): {label: string; value: string}[] => {
-    const parts: {label: string; value: string}[] = [];
-    if (columns.includes('school') && spell.school) parts.push({label: 'School', value: spell.school});
-    if (columns.includes('castingTime') && spell.castingTime) parts.push({label: 'Cast', value: spell.castingTime});
-    if (columns.includes('range') && spell.range) parts.push({label: 'Range', value: spell.range});
-    if (columns.includes('components')) {
-      const c = componentsLabel(spell.components);
-      if (c) parts.push({label: 'Comp', value: c});
-    }
-    if (columns.includes('duration') && spell.duration) parts.push({label: 'Dur', value: spell.duration});
-    if (columns.includes('attackSave') && spell.attackSave) parts.push({label: 'Roll', value: spell.attackSave});
-    if (columns.includes('damageEffect') && spell.damageEffect) parts.push({label: 'Effect', value: spell.damageEffect});
-    if (columns.includes('source') && spell.source) parts.push({label: 'Src', value: spell.source});
-    return parts;
-  };
-
-  const onSpellKeyDown = (groupId: string, spellId: string, index: number) => (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    const group = groups.find((g) => g.id === groupId);
-    const spell = group?.spells.find((s) => s.id === spellId);
-    if (!spell) return;
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      addSpellAfter(groupId, index);
-      return;
-    }
-    if (e.key === 'Backspace' && spell.name.length === 0) {
-      e.preventDefault();
-      removeSpell(groupId, spellId);
-    }
-  };
-
-  const onScrollAreaWheel = (e: WheelEvent<HTMLDivElement>) => {
-    if (e.ctrlKey || e.metaKey) return;
-    if (canScrollInDirection(e.currentTarget, e.deltaX, e.deltaY)) {
-      e.stopPropagation();
-      return;
-    }
-    e.stopPropagation();
+  const addSpell = (spellLevel: number, spell: SpellEntry) => {
+    update({groups: addSpellToLevel(groups, spellLevel, spell)});
+    pickLevel(spellLevel);
+    setQuery('');
   };
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden text-ink" style={{fontSize}}>
-      {editing ? (
-        <input
-          value={content.title ?? ''}
-          onChange={(e) => update({title: e.target.value})}
-          onPointerDown={(e) => e.stopPropagation()}
-          placeholder="Spell list title"
-          className="mb-2 border-b border-gold/40 bg-transparent pb-1 font-display text-[1em] font-bold uppercase tracking-wide text-accent outline-none placeholder:text-accent/35"
-        />
-      ) : content.title ? (
-        <div className="mb-2 border-b border-gold/40 pb-1 font-display text-[1em] font-bold uppercase tracking-wide text-accent">
-          {content.title}
-        </div>
-      ) : null}
-
-      {content.showHeader ? (
-        <div className="mb-2 grid grid-cols-3 gap-1.5" onPointerDown={editing ? (e) => e.stopPropagation() : undefined}>
-          {editing ? (
-            <>
-              <label className="flex flex-col items-center rounded-lg border border-gold/40 bg-white/35 px-1 py-1.5">
-                <span className="font-display text-[0.643em] font-bold uppercase tracking-wide text-accent">Ability</span>
-                <input
-                  value={content.ability ?? ''}
-                  onChange={(e) => update({ability: e.target.value})}
-                  className="w-full bg-transparent text-center font-serif text-[1em] font-bold text-slate-800 outline-none"
-                />
-              </label>
-              <label className="flex flex-col items-center rounded-lg border border-gold/40 bg-white/35 px-1 py-1.5">
-                <span className="font-display text-[0.643em] font-bold uppercase tracking-wide text-accent">Save DC</span>
-                <input
-                  value={content.saveDc ?? ''}
-                  onChange={(e) => update({saveDc: e.target.value})}
-                  className="w-full bg-transparent text-center font-serif text-[1em] font-bold text-slate-800 outline-none"
-                />
-              </label>
-              <label className="flex flex-col items-center rounded-lg border border-gold/40 bg-white/35 px-1 py-1.5">
-                <span className="font-display text-[0.643em] font-bold uppercase tracking-wide text-accent">Spell Atk</span>
-                <input
-                  value={content.attackBonus ?? ''}
-                  onChange={(e) => update({attackBonus: e.target.value})}
-                  className="w-full bg-transparent text-center font-serif text-[1em] font-bold text-slate-800 outline-none"
-                />
-              </label>
-            </>
-          ) : (
-            <>
-              <SummaryCell label="Ability" value={content.ability ?? ''} />
-              <SummaryCell label="Save DC" value={content.saveDc ?? ''} />
-              <SummaryCell label="Spell Atk" value={content.attackBonus ?? ''} />
-            </>
+    <div className="flex h-full w-full flex-col overflow-hidden text-ink" style={{fontSize: style?.fontSize ?? 14}}>
+      <div className="shrink-0 space-y-2 border-b border-gold/40 pb-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {canEdit ? (
+            <input aria-label="Spell list title" value={content.title ?? ''} onChange={(e) => update({title: e.target.value})} onPointerDown={stopCanvasDrag} placeholder="Spell list title" className="min-w-20 flex-1 rounded bg-white/45 px-1 font-display text-[1em] font-bold text-accent outline-accent" />
+          ) : content.title && (
+            <div className="min-w-0 break-words font-display text-[1em] font-bold leading-tight text-accent">{content.title}</div>
+          )}
+          {canChange && (
+            <button type="button" onPointerDown={stopCanvasDrag} onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1 rounded-md bg-accent px-2.5 py-1.5 font-sans text-[0.8em] font-semibold text-white hover:bg-accent-soft">
+              <Plus size="1em" /> Add spell
+            </button>
           )}
         </div>
-      ) : null}
-
-      <div
-        data-canvas-wheel="internal-scroll"
-        className="no-scrollbar flex-1 space-y-3 overflow-auto overscroll-contain pr-1 font-serif text-ink-soft"
-        onWheel={onScrollAreaWheel}
-      >
-        {groups.map((group) => (
-          <section key={group.id} className="rounded-lg border border-gold/25 bg-white/20">
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-lg border-b border-gold/30 bg-parchment/95 px-2 py-1.5 backdrop-blur">
-              <div>
-                <span className="font-display text-[0.786em] font-bold uppercase tracking-wide text-accent">
-                  {spellLevelLabel(group.level)}
-                </span>
-                <span className="ml-2 font-sans text-[0.714em] font-medium text-slate-400">{group.spells.length} spells</span>
-              </div>
-              {group.level > 0 ? (
-                editing ? (
-                  <span className="flex items-center gap-1.5 font-sans text-[0.714em] text-slate-500" onPointerDown={(e) => e.stopPropagation()}>
-                    <SlotPips
-                      total={group.slotsTotal}
-                      expended={group.slotsExpended}
-                      editing={editing}
-                      onChange={(slotsExpended) => patchGroup(group.id, {slotsExpended})}
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      value={group.slotsExpended}
-                      onChange={(e) => patchGroup(group.id, {slotsExpended: safeNumber(e.target.value, group.slotsTotal)})}
-                      className="w-8 rounded border border-gold/40 bg-white/40 px-1 text-center outline-none focus:border-accent/60"
-                      title="Slots expended"
-                    />
-                    <span>/</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={group.slotsTotal}
-                      onChange={(e) => patchSlotsTotal(group.id, safeNumber(e.target.value))}
-                      className="w-8 rounded border border-gold/40 bg-white/40 px-1 text-center outline-none focus:border-accent/60"
-                      title="Total slots"
-                    />
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5 font-sans text-[0.714em] text-slate-500">
-                    <SlotPips total={group.slotsTotal} expended={group.slotsExpended} editing={false} />
-                    {group.slotsTotal > 0 ? (
-                      <span>
-                        {group.slotsExpended}/{group.slotsTotal}
-                      </span>
-                    ) : null}
-                  </span>
-                )
-              ) : null}
-            </div>
-
-            <div className="space-y-1.5 p-1.5">
-              {group.spells.map((spell) => {
-                const meta = metaFor(spell);
-                const expanded = spell.expanded ?? false;
-                const description = spell.description || spell.notes || '';
-                const muted = group.level > 0 && !spell.prepared;
-                return (
-                  <article
-                    key={spell.id}
-                    className={cn(
-                      'group/spell rounded-lg border border-transparent bg-white/30 px-2 py-1.5 leading-tight transition-colors',
-                      editing && 'hover:border-gold/35 hover:bg-white/45',
-                      muted && !editing && 'opacity-60',
-                    )}
-                  >
-                    <div className="flex items-start gap-2">
-                      <button
-                        type="button"
-                        onClick={() => patchSpell(group.id, spell.id, {expanded: !expanded})}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        className="mt-0.5 rounded p-0.5 text-accent/70 transition-colors hover:bg-white/50 hover:text-accent"
-                        title={expanded ? 'Collapse spell details' : 'Expand spell details'}
-                      >
-                        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      </button>
-                      {group.level > 0 ? (
-                        <button
-                          type="button"
-                          onClick={editing ? () => patchSpell(group.id, spell.id, {prepared: !spell.prepared}) : undefined}
-                          onPointerDown={editing ? (e) => e.stopPropagation() : undefined}
-                          disabled={!editing}
-                          className={cn(
-                            'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors',
-                            spell.prepared
-                              ? 'border-accent bg-accent text-parchment'
-                              : 'border-gold/60 bg-parchment/70 text-transparent',
-                            editing ? 'cursor-pointer hover:border-accent' : 'cursor-default',
-                          )}
-                          title={spell.prepared ? 'Prepared' : 'Not prepared'}
-                        >
-                          <Check size={11} strokeWidth={3} />
-                        </button>
-                      ) : null}
-                      {editing ? (
-                        <div className="min-w-0 flex-1" onPointerDown={(e) => e.stopPropagation()}>
-                          <textarea
-                            ref={(el) => {
-                              rowRefs.current[spell.id] = el;
-                              resizeTextarea(el);
-                            }}
-                            value={spell.name}
-                            onChange={(e) => patchSpell(group.id, spell.id, {name: e.target.value})}
-                            onInput={(e) => resizeTextarea(e.currentTarget)}
-                            onKeyDown={onSpellKeyDown(group.id, spell.id, group.spells.findIndex((s) => s.id === spell.id))}
-                            rows={1}
-                            placeholder="Spell name"
-                            className="min-h-6 w-full resize-none overflow-hidden rounded-md border border-transparent bg-white/35 px-1.5 py-0.5 font-medium leading-snug text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-gold/40 focus:bg-white/60"
-                          />
-                        </div>
-                      ) : (
-                        <span className="min-w-0 flex-1 whitespace-pre-wrap font-medium leading-snug text-slate-800">{spell.name || 'Unnamed spell'}</span>
-                      )}
-                      {columns.includes('concentration') && spell.concentration ? (
-                        <span
-                          className="shrink-0 rounded-full border border-gold/50 bg-white/70 px-1.5 py-0.5 font-sans text-[0.643em] font-bold uppercase text-ink-soft"
-                          title="Concentration"
-                        >
-                          Conc
-                        </span>
-                      ) : null}
-                      {columns.includes('ritual') && spell.ritual ? (
-                        <span
-                          className="shrink-0 rounded-full border border-gold/50 bg-white/70 px-1.5 py-0.5 font-sans text-[0.643em] font-bold uppercase text-ink-soft"
-                          title="Ritual"
-                        >
-                          Ritual
-                        </span>
-                      ) : null}
-                      {editing ? (
-                        <button
-                          type="button"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={() => removeSpell(group.id, spell.id)}
-                          className="mt-0.5 rounded p-1 text-slate-300 opacity-0 transition-opacity hover:bg-white/40 hover:text-accent group-hover/spell:opacity-100 focus:opacity-100"
-                          title="Remove spell"
-                        >
-                          <X size={13} />
-                        </button>
-                      ) : null}
-                    </div>
-                    {meta.length > 0 ? (
-                      <div className={cn('mt-1 flex flex-wrap gap-1 font-sans text-[0.714em]', group.level > 0 ? 'pl-6' : 'pl-0')}>
-                        {meta.map((item) => (
-                          <span key={`${spell.id}-${item.label}-${item.value}`} className="rounded-full bg-parchment-deep/60 px-1.5 py-0.5 text-slate-500">
-                            <span className="font-semibold uppercase tracking-wide text-accent/70">{item.label}</span> {item.value}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                    {expanded ? (
-                      <div className="mt-2 rounded-lg border border-gold/25 bg-parchment/45 p-2">
-                        {editing ? (
-                          <div onPointerDown={(e) => e.stopPropagation()}>
-                            <span className="mb-1 block font-sans text-[0.714em] font-bold uppercase tracking-wide text-accent/70">
-                              Description
-                            </span>
-                            <textarea
-                              ref={(el) => {
-                                notesRefs.current[spell.id] = el;
-                                resizeTextarea(el);
-                              }}
-                              value={description}
-                              onChange={(e) => patchSpell(group.id, spell.id, {description: e.target.value})}
-                              onInput={(e) => resizeTextarea(e.currentTarget)}
-                              rows={1}
-                              placeholder="Spell description, targets, area, scaling..."
-                              className="min-h-8 w-full resize-none overflow-hidden rounded-md border border-gold/25 bg-white/35 px-2 py-1 text-[0.9em] italic leading-snug text-slate-600 outline-none transition-colors placeholder:text-slate-400 focus:border-gold/50 focus:bg-white/60"
-                            />
-                          </div>
-                        ) : description ? (
-                          <div>
-                            <span className="mb-1 block font-sans text-[0.714em] font-bold uppercase tracking-wide text-accent/70">
-                              Description
-                            </span>
-                            <p className="whitespace-pre-wrap text-[0.9em] italic leading-snug text-slate-500">{description}</p>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
-
-            {editing ? (
-              <button
-                type="button"
-                onClick={() => addSpellAfter(group.id, group.spells.length - 1, 'New spell')}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="mx-1.5 mb-1.5 flex w-fit items-center gap-1 rounded-md px-1.5 py-1 font-sans text-[0.857em] font-medium text-accent hover:bg-white/35"
-              >
-                <Plus size={13} /> Add spell
+        {content.showHeader && <SpellSummary content={content} editing={canEdit} update={update} />}
+        {!printable && (
+          <div className="flex flex-wrap items-center gap-1 font-sans text-[0.8em]" onPointerDown={stopCanvasDrag}>
+            <select aria-label="Filter spells by level" value={level ?? ''} onChange={(e) => pickLevel(e.target.value === '' ? null : Number(e.target.value))} className="max-w-full rounded-md border border-gold/40 bg-white/55 px-2 py-1 text-ink">
+              <option value="">All levels</option>
+              {SPELL_LEVELS.map((value) => <option key={value} value={value}>{spellLevelLabel(value)}</option>)}
+            </select>
+            <button type="button" aria-label={searching ? 'Close spell search' : 'Search your spells'} aria-expanded={searching} title="Search your spells" className="spell-control" onClick={() => {setSearching(!searching); setQuery('');}}>
+              {searching ? <X size="1em" /> : <Search size="1em" />}
+            </button>
+            <button type="button" aria-pressed={preparedOnly} className={cn('rounded-md border border-gold/40 px-2 py-1 font-semibold', preparedOnly ? 'bg-accent text-white' : 'bg-white/45 text-ink-soft hover:bg-white/80')} onClick={() => {setPreparedOnly(!preparedOnly); scrollArea.current?.scrollTo({top: 0});}}>
+              Prepared
+            </button>
+            {canChange && canRestore && (
+              <button type="button" title="Restore all spell slots" className="spell-control ml-auto" onClick={() => update({groups: groups.map((group) => group.level > 0 && group.slotsExpended > 0 ? {...group, slotsExpended: 0} : group)})}>
+                <RotateCcw size="1em" /><span className="sr-only">Restore all spell slots</span>
               </button>
-            ) : null}
+            )}
+            {canEdit && availableLevels.length > 0 && (
+              <select aria-label="Add spell level" value="" onChange={(e) => {
+                const addedLevel = Number(e.target.value);
+                update({groups: [...groups, makeSpellGroup(addedLevel, 0)].sort((a, b) => a.level - b.level)});
+                pickLevel(addedLevel);
+                setPreparedOnly(false);
+                setQuery('');
+              }} className="rounded-md border border-gold/40 bg-white/55 px-2 py-1 text-ink">
+                <option value="" disabled>Add level…</option>
+                {availableLevels.map((value) => <option key={value} value={value}>{spellLevelLabel(value)}</option>)}
+              </select>
+            )}
+            {searching && <input type="search" autoFocus aria-label="Search your spells" value={query} placeholder="Find a spell by name" className="min-w-0 basis-full rounded-md border border-gold/40 bg-white/70 px-2 py-1 outline-accent" onChange={(e) => {setQuery(e.target.value); scrollArea.current?.scrollTo({top: 0});}} />}
+          </div>
+        )}
+      </div>
+
+      <div ref={scrollArea} data-canvas-wheel="internal-scroll" className="spell-scrollbar min-h-0 flex-1 space-y-3 overflow-auto overscroll-contain py-2 pr-1" onWheel={(e) => {if (!e.ctrlKey && !e.metaKey) e.stopPropagation();}}>
+        {visibleGroups.length === 0 && <p className="py-3 text-center font-sans text-[0.85em] text-ink-soft">{term || preparedOnly ? 'No spells match these filters.' : level === null ? 'No spells yet.' : `No spells in ${spellLevelLabel(level)}.`}</p>}
+        {visibleGroups.map(({group, spells}) => (
+          <section key={group.id} aria-label={spellLevelLabel(group.level)} className="space-y-1.5">
+            <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-1 rounded-md border border-gold/30 bg-parchment px-2 py-1">
+              <h3 className="font-display text-[0.82em] font-bold text-accent">{spellLevelLabel(group.level)}</h3>
+              {group.level > 0 && <SlotTracker group={group} editing={canEdit} onChange={canChange ? (patch) => updateGroup(group.id, (current) => ({...current, ...patch})) : undefined} />}
+            </div>
+            {spells.length === 0 && <p className="px-2 py-1 font-sans text-[0.8em] text-ink-soft">No spells in this level.</p>}
+            {spells.map((spell) => (
+              <SpellCard
+                key={spell.id}
+                spell={spell}
+                level={group.level}
+                columns={spell.columns ?? content.columns ?? []}
+                editing={canEdit}
+                onChange={canChange ? (patch) => updateGroup(group.id, (current) => ({...current, spells: current.spells.map((entry) => entry.id === spell.id ? {...entry, ...patch} : entry)})) : undefined}
+                onRemove={canEdit ? () => updateGroup(group.id, (current) => ({...current, spells: current.spells.filter((entry) => entry.id !== spell.id)})) : undefined}
+              />
+            ))}
           </section>
         ))}
       </div>
+      {pickerOpen && canChange && <SpellPicker groups={groups} initialLevel={level} onAdd={addSpell} onClose={() => setPickerOpen(false)} />}
     </div>
   );
 }
-
